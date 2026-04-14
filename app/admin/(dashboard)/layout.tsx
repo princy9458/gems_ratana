@@ -1,4 +1,4 @@
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -12,6 +12,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { Bell, Shield } from "lucide-react";
 import StoreProvider from "@/app/StoreProvider";
 import GetAllCategories from "@/lib/GetAllDetails/GetAllCategories";
 import GetAllProducts from "@/lib/GetAllDetails/GetAllProducts";
@@ -31,16 +32,19 @@ export default async function DashboardLayout({
   const cookieStore = await cookies();
   const token = cookieStore.get("auth_token")?.value;
 
-  let user: any;
-
   let isAuthenticated = false;
+  let user: any = null;
 
   if (token) {
     try {
-      jwt.verify(token, JWT_SECRET);
-      isAuthenticated = true;
-      user = jwt.decode(token);
-    } catch (e) {}
+      let check = jwt.verify(token, JWT_SECRET);
+      if (check) {
+        isAuthenticated = true;
+        user = jwt.decode(token);
+      }
+    } catch (e) {
+      isAuthenticated = false;
+    }
   }
 
   if (!isAuthenticated) {
@@ -49,46 +53,60 @@ export default async function DashboardLayout({
 
   return (
     <StoreProvider>
+      <GetUser user={user} />
+      <GetAllAttributes />
       <GetAllCategories />
       <GetAllProducts />
-      <GetAllAttributes />
-      <GetUser user={user} />
       <GetAllPages />
       <GetAllAdminUsers />
+
       <SidebarProvider>
         <AppSidebar />
-        <main className="w-full flex-1 flex flex-col bg-luxury-ivory relative min-h-screen font-poppins antialiased text-luxury-black">
-          <header className="flex h-20 shrink-0 items-center gap-2 border-b border-luxury-gold/10 bg-white/70 backdrop-blur-xl px-8 transition-all sticky top-0 z-[9999] shadow-sm">
-            <div className="flex items-center gap-2">
-              <SidebarTrigger className="-ml-1 text-luxury-gold hover:bg-luxury-gold/10 rounded-xl transition-colors" />
-              <Separator
-                orientation="vertical"
-                className="mr-2 h-4 bg-luxury-gold/20"
-              />
+        <SidebarInset className="bg-ink flex flex-col min-w-0 min-h-screen">
+          <header className="flex h-16 shrink-0 items-center justify-between border-b border-gold/20 bg-charcoal px-6 sticky top-0 z-[9999] shadow-2xl shadow-black/60">
+            <div className="flex items-center gap-4">
+              <SidebarTrigger className="-ml-2 text-white/40 hover:text-gold transition-colors" />
+              <Separator orientation="vertical" className="h-4 bg-white/10" />
               <Breadcrumb>
                 <BreadcrumbList>
-                  <BreadcrumbItem className="hidden md:block">
+                  <BreadcrumbItem>
                     <BreadcrumbLink
                       href="/admin"
-                      className="font-black text-[10px] uppercase tracking-[0.3em] text-luxury-black/40 hover:text-luxury-gold transition-colors"
+                      className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] hover:text-gold transition-colors italic"
                     >
-                      Imperial Dashboard
+                      Admin Dashboard
                     </BreadcrumbLink>
                   </BreadcrumbItem>
-                  <BreadcrumbSeparator className="hidden md:block opacity-40 text-luxury-gold" />
+                  <BreadcrumbSeparator className="text-white/10" />
                   <BreadcrumbItem>
-                    <BreadcrumbPage className="font-black text-[10px] uppercase tracking-[0.3em] text-luxury-gold">
-                      Vault Overview
+                    <BreadcrumbPage className="text-[10px] font-black text-gold uppercase tracking-[0.2em] italic">
+                      System Insights
                     </BreadcrumbPage>
                   </BreadcrumbItem>
                 </BreadcrumbList>
               </Breadcrumb>
             </div>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 bg-olive/20 border border-olive/30 px-3 py-1.5 rounded-sm ring-1 ring-gold/5">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-lg shadow-emerald-500/40" />
+                <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest italic">
+                  System Online
+                </span>
+              </div>
+              <div className="h-9 w-9 rounded-sm bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-gold hover:border-gold/30 transition-all cursor-pointer">
+                <Bell size={16} />
+              </div>
+              <div className="h-9 w-9 rounded-sm bg-olive border border-olive/40 ring-1 ring-gold/10 flex items-center justify-center text-white shadow-xl shadow-olive/20">
+                <Shield size={18} strokeWidth={2.5} />
+              </div>
+            </div>
           </header>
-          <div className="flex-1 p-8 md:p-12 max-w-[1800px] mx-auto w-full animate-in fade-in duration-1000">
-            {children}
+          <div className="flex-1 flex flex-col p-6 md:p-10 w-full animate-in fade-in slide-in-from-bottom-2 duration-1000 overflow-x-hidden relative">
+            {/* Subtle Carbon Fiber Pattern Overlay */}
+            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-[0.015] pointer-events-none" />
+            <div className="relative z-10 flex-1 flex flex-col">{children}</div>
           </div>
-        </main>
+        </SidebarInset>
       </SidebarProvider>
     </StoreProvider>
   );

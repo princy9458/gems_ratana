@@ -122,7 +122,7 @@ function PagesPageContent() {
             </div>
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.35em] text-amber-200/50">
-                Sacred Content
+                Site Content
               </p>
               <h1 className="mt-2 text-3xl font-semibold text-white md:text-4xl">
                 Pages Manager

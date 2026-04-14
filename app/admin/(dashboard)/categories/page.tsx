@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, Suspense } from "react";
 import {
   FolderTree,
   Plus,
-  Pencil,
-  Trash2,
+  Edit,
+  Trash,
   Search,
   ChevronRight,
   ChevronDown,
@@ -13,20 +13,15 @@ import {
   Layout,
   FileText,
   Save,
-  Loader2,
   X,
   Boxes,
   Tag,
   Upload,
+  Database,
+  Terminal,
+  Zap,
+  Globe,
 } from "lucide-react";
-import { ImportModal } from "@/components/admin/ImportModal";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -35,45 +30,37 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { motion, AnimatePresence } from "motion/react";
-import { useDispatch, useSelector } from "react-redux";
-import { AppDispatch, RootState } from "@/lib/store/store";
+import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
+import { RootState } from "@/lib/store/store";
 import {
   createCategory,
   deleteCategory,
   updateCategory,
-  bulkImportCategories,
   fetchCategories,
+  bulkImportCategories,
 } from "@/lib/store/categories/categoriesThunk";
+import {
+  CategoryRecord,
+  CategoryType,
+} from "@/lib/store/categories/categoriesSlices";
+import { ImportModal } from "@/components/admin/ImportModal";
+import { MediaLibraryModal } from "@/components/admin/media/MediaLibraryModal";
+import { ImageIcon } from "lucide-react";
 
-type CategoryType = "product" | "portfolio" | "blog";
-
-type CategoryRecord = {
-  _id?: string;
-  name?: string;
-  title?: string;
-  slug: string;
-  type: CategoryType;
-  parentId?: string | null;
-  description?: string;
-  entityCount?: number;
-  pageStatus?: string;
-  bannerImageUrl?: string;
-  metaTitle?: string;
-  metaDescription?: string;
-};
+const categorySampleData = [
+  {
+    name: "PRECIOUS GEMSTONES",
+    slug: "precious-gemstones",
+    type: "product",
+    description: "Rare and precious Vedic gemstones.",
+    pageStatus: "published",
+    metaTitle: "Precious Gemstones Collection",
+    metaDescription:
+      "GemsRatna: Authentic lab-certified precious gemstones.",
+  },
+];
 
 type CategoryDraft = {
   name: string;
@@ -115,26 +102,37 @@ function toDraft(record: CategoryRecord): CategoryDraft {
   };
 }
 
-export default function CategoriesPage() {
+function CategoriesPageContent() {
   const [saving, setSaving] = useState(false);
   const [typeFilter, setTypeFilter] = useState<CategoryType | "">("");
   const [searchQuery, setSearchQuery] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<CategoryDraft>(createDraft());
-  const [showImportModal, setShowImportModal] = useState(false);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
+  const [showImportModal, setShowImportModal] = useState(false);
 
-  const { allCategories: categories, categoryLoading: loading } = useSelector(
-    (state: RootState) => state.adminCategories,
-  );
+  const { allCategories: categories, categoryLoading: loading } =
+    useAppSelector((state: RootState) => state.adminCategories);
 
-  const dispatch = useDispatch<AppDispatch>();
+  const dispatch = useAppDispatch();
 
   const resetForm = () => {
     setForm(createDraft(typeFilter || "product"));
     setEditingId(null);
     setShowForm(false);
+  };
+
+  const handleImport = async (data: any[]) => {
+    const resultAction = await dispatch(bulkImportCategories(data));
+    if (bulkImportCategories.fulfilled.match(resultAction)) {
+      dispatch(fetchCategories());
+      return { message: `${data.length} CATEGORIES SYNCHRONIZED` };
+    } else {
+      throw new Error(
+        (resultAction.payload as any)?.message || "Import failed",
+      );
+    }
   };
 
   const totals = useMemo(
@@ -161,66 +159,52 @@ export default function CategoriesPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const handleSubmit = async (e: any) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const payload = toDraft(form);
+    const payload = { ...form };
     if (!payload.name) {
-      toast.error("Category name is required.");
+      toast.error("Category Title required.");
       return;
     }
 
     setSaving(true);
+    const tId = toast.loading("SYNCHRONIZING TAXONOMY...");
     try {
       if (editingId) {
         await dispatch(updateCategory({ id: editingId, payload })).unwrap();
-        toast.success("Category updated!");
+        toast.success("CATEGORY UPDATED", { id: tId });
       } else {
         await dispatch(createCategory(payload)).unwrap();
-        toast.success("Category created!");
+        toast.success("CATEGORY CREATED", { id: tId });
       }
       resetForm();
+      dispatch(fetchCategories());
     } catch (err: any) {
-      toast.error(err?.message || "Failed to save category.");
+      toast.error(
+        "CREATION FAILURE: " + (err?.message || "Operation Terminated"),
+        { id: tId },
+      );
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (record: CategoryRecord) => {
-    console.log(record);
-    if (!confirm(`Delete category "${record.name}"?`)) return;
+    if (
+      !confirm(
+        `CONFIRM DELETION: Delete category "${record.name || record.title}"?`,
+      )
+    )
+      return;
+    const tId = toast.loading("REMOVING CATEGORY...");
     try {
       await dispatch(deleteCategory(record._id!)).unwrap();
-      toast.success("Category deleted!");
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to delete category.");
-    }
-  };
-
-  const handleImport = async (data: any[]) => {
-    const resultAction = await dispatch(bulkImportCategories(data));
-    if (bulkImportCategories.fulfilled.match(resultAction)) {
+      toast.success("CATEGORY REMOVED", { id: tId });
       dispatch(fetchCategories());
-      return resultAction.payload;
-    } else {
-      throw new Error(
-        (resultAction.payload as any)?.message || "Import failed",
-      );
+    } catch (err: any) {
+      toast.error("REMOVAL FAILURE", { id: tId });
     }
   };
-
-  const categorySampleData = [
-    {
-      name: "Smart Home",
-      slug: "smart-home",
-      type: "product",
-      description: "Devices for home automation and security.",
-      pageStatus: "published",
-      metaTitle: "Shop Smart Home Devices",
-      metaDescription:
-        "Find the best deals on smart home hubs, cameras, and lights.",
-    },
-  ];
 
   const toggleExpand = (id: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -230,18 +214,23 @@ export default function CategoriesPage() {
     setExpandedNodes(newSet);
   };
 
-  // Build Hierarchy
   const filteredCategories = useMemo(() => {
-    if (!searchQuery) return categories;
-    const lowerQuery = searchQuery.toLowerCase();
-    return categories.filter((c) => {
-      const n = c.title || "";
-      return (
-        n.toLowerCase().includes(lowerQuery) ||
-        c.slug.toLowerCase().includes(lowerQuery)
-      );
-    });
-  }, [categories, searchQuery]);
+    let filtered = categories;
+    if (typeFilter) {
+      filtered = filtered.filter((c) => c.type === typeFilter);
+    }
+    if (searchQuery) {
+      const lowerQuery = searchQuery.toLowerCase();
+      filtered = filtered.filter((c) => {
+        const name = c.name || c.title || "";
+        return (
+          name.toLowerCase().includes(lowerQuery) ||
+          c.slug.toLowerCase().includes(lowerQuery)
+        );
+      });
+    }
+    return filtered;
+  }, [categories, searchQuery, typeFilter]);
 
   const tree = useMemo(() => {
     const map = new Map<string, CategoryRecord & { children: any[] }>();
@@ -260,7 +249,6 @@ export default function CategoriesPage() {
     return roots;
   }, [filteredCategories]);
 
-  // Recursively render tree nodes as flat table rows
   const renderRows = (nodes: any[], depth: number = 0): React.ReactNode[] => {
     return nodes.flatMap((node) => {
       const hasChildren = node.children.length > 0;
@@ -270,17 +258,17 @@ export default function CategoriesPage() {
       const row = (
         <TableRow
           key={node._id}
-          className={`group ${depth === 0 ? "bg-card hover:bg-accent/5" : "bg-muted/5 hover:bg-accent/10"}`}
+          className={`group border-white/5 hover:bg-white/[0.02] transition-all duration-300 ${depth > 0 ? "bg-ink/20" : ""}`}
         >
           <TableCell
-            className="w-full sm:w-[50%]"
-            style={{ paddingLeft: `${depth * 2 + 1}rem` }}
+            className="w-full sm:w-[50%] px-8 py-6"
+            style={{ paddingLeft: `${depth * 3 + 2}rem` }}
           >
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
               {hasChildren ? (
                 <button
                   onClick={(e) => toggleExpand(node._id, e)}
-                  className={`flex items-center justify-center w-6 h-6 rounded-md transition-colors ${isExpanded ? "bg-primary/10 text-primary" : "bg-muted hover:bg-muted-foreground/30 text-muted-foreground"}`}
+                  className={`flex items-center justify-center w-6 h-6 rounded-sm transition-all border ${isExpanded ? "bg-gold/10 border-gold text-gold" : "bg-ink border-white/10 text-white/20 hover:text-white"}`}
                 >
                   {isExpanded ? (
                     <ChevronDown size={14} />
@@ -290,74 +278,64 @@ export default function CategoriesPage() {
                 </button>
               ) : (
                 <div className="w-6 h-6 flex items-center justify-center">
-                  <div className="w-1.5 h-1.5 rounded-full bg-border" />
+                  <div className="w-1 h-1 rounded-full bg-white/10" />
                 </div>
               )}
 
               <div
-                className={`flex items-center justify-center w-8 h-8 rounded-lg ${depth === 0 ? "bg-primary/10 text-primary" : "bg-muted/50 text-muted-foreground"}`}
+                className={`flex items-center justify-center w-10 h-10 rounded-sm border ${depth === 0 ? "bg-gold/5 border-gold/20 text-gold" : "bg-ink border-white/5 text-white/20"}`}
               >
-                <FolderTree size={16} />
+                <FolderTree size={18} />
               </div>
 
               <div className="flex flex-col">
                 <span
-                  className={`font-semibold text-foreground ${depth === 0 ? "text-[15px]" : "text-[14px]"}`}
+                  className={`font-black text-white uppercase tracking-tight group-hover:text-gold transition-colors ${depth === 0 ? "text-sm" : "text-xs"}`}
                 >
                   {name}
                 </span>
-                <span className="text-[11px] font-mono text-muted-foreground">
+                <span className="text-[9px] font-mono font-bold text-white/20 uppercase tracking-widest italic">
                   /{node.slug}
                 </span>
               </div>
             </div>
           </TableCell>
           <TableCell>
-            {depth === 0 ? (
-              <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 text-[10px] font-bold uppercase tracking-widest border border-slate-200 dark:border-slate-700">
-                Root Level
-              </span>
-            ) : (
-              <span className="px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-[10px] font-bold uppercase tracking-widest border border-border">
-                Level {depth + 1}
-              </span>
-            )}
-          </TableCell>
-          <TableCell>
-            <span className="px-2 py-0.5 rounded-full bg-primary/5 text-primary text-[10px] font-bold border border-primary/10">
-              {node.children.length}{" "}
-              {node.children.length === 1 ? "Item" : "Items"}
+            <span className="text-[9px] font-black text-white/40 uppercase tracking-widest px-3 py-1 bg-ink border border-white/5 rounded-none italic">
+              {node.type} Logic
             </span>
           </TableCell>
-          <TableCell className="text-right">
-            <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-muted-foreground hover:bg-muted"
+          <TableCell>
+            <div className="flex items-center gap-2">
+              <Zap size={12} className="text-gold/40" />
+              <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">
+                {node.children.length} Sub-Nodes
+              </span>
+            </div>
+          </TableCell>
+          <TableCell className="text-right px-8">
+            <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button
+                className="h-9 w-9 bg-charcoal border border-white/5 text-white/20 hover:text-gold hover:border-gold/30 transition-all flex items-center justify-center"
                 onClick={() => openCreate(node._id)}
-                title="Add Subcategory"
+                title="Add Sub-Category"
               >
-                <Plus size={14} />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-muted"
+                <Plus size={16} />
+              </button>
+              <button
+                className="h-9 w-9 bg-charcoal border border-white/5 text-white/20 hover:text-gold hover:border-gold/30 transition-all flex items-center justify-center"
                 onClick={() => openEdit(node)}
-                title="Edit Category"
+                title="Modify Category"
               >
-                <Pencil size={14} />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                <Edit size={16} />
+              </button>
+              <button
+                className="h-9 w-9 bg-charcoal border border-white/5 text-white/20 hover:text-red hover:border-red/30 transition-all flex items-center justify-center"
                 onClick={() => handleDelete(node)}
-                title="Delete Category"
+                title="Remove Category"
               >
-                <Trash2 size={14} />
-              </Button>
+                <Trash size={16} />
+              </button>
             </div>
           </TableCell>
         </TableRow>
@@ -372,273 +350,215 @@ export default function CategoriesPage() {
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 p-4 sm:p-8 max-w-[1400px] mx-auto">
-      {/* Header & Stats Banner */}
-      <div className="grid lg:grid-cols-4 gap-6 items-start">
-        <div className="lg:col-span-3">
-          <h1 className="text-3xl font-bold tracking-tight text-foreground mb-2">
-            Category Management
+    <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      {/* Tactical Header */}
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 border-b border-white/5 pb-8">
+        <div className="space-y-2">
+          <h1 className="text-4xl font-black text-white uppercase tracking-tighter leading-none">
+            Category <span className="text-gold">Management</span>
           </h1>
-          <p className="text-muted-foreground max-w-2xl">
-            Organize your store's taxonomy with our premium hierarchy matrix.
-            Top-level categories act as main navigational nodes, while nested
-            items create structured sub-menus.
+          <p className="text-[10px] text-white/40 font-black uppercase tracking-[0.3em] italic flex items-center gap-2">
+            <Database size={12} className="text-gold" /> System hierarchy for
+            product categorization and navigation.
           </p>
         </div>
-
-        <div className="flex justify-end lg:col-span-1 gap-2">
-          <Button
-            variant="outline"
+        <div className="flex items-center gap-4">
+          <button
+            className="h-12 px-6 bg-charcoal border border-white/10 text-white/40 font-black text-[10px] uppercase tracking-widest hover:text-white transition-all flex items-center gap-3"
             onClick={() => setShowImportModal(true)}
-            className="h-11 px-6 font-bold shadow-sm gap-2 rounded-xl transition-all border-slate-200 text-slate-600 hover:bg-slate-50"
           >
-            <Upload size={16} /> Import JSON
-          </Button>
-          <ImportModal
-            isOpen={showImportModal}
-            onClose={() => setShowImportModal(false)}
-            onImport={handleImport}
-            sampleData={categorySampleData}
-            title="Import Categories"
-            description="Upload a JSON file containing category records. Existing slugs will be skipped."
-            fileName="categories"
-          />
-          <Button
+            <Upload size={16} /> Bulk Upload
+          </button>
+          <button
+            className="h-12 px-10 bg-olive text-white hover:bg-olive-lt font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 flex items-center gap-3 shadow-2xl shadow-olive/20"
             onClick={() => openCreate(null)}
-            className="h-11 px-6 font-bold shadow-md gap-2 rounded-xl transition-all hover:scale-[1.02]"
           >
-            <Plus size={16} /> Add Category
-          </Button>
+            <Plus size={18} /> Add Category
+          </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="bg-gradient-to-br from-card to-muted/20 border-border/50 shadow-sm rounded-2xl">
-          <CardContent className="p-5 flex items-center justify-between">
-            <div>
-              <p className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground mb-1">
-                Total Hubs
-              </p>
-              <p className="text-3xl font-black text-foreground">
-                {totals.all}
-              </p>
+      {/* Stats Cluster */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        {[
+          {
+            label: "Total Categories",
+            val: totals.all,
+            icon: Boxes,
+            color: "gold",
+          },
+          {
+            label: "Product Categories",
+            val: totals.product,
+            icon: Package,
+            color: "olive",
+          },
+          {
+            label: "Portfolio Nodes",
+            val: totals.portfolio,
+            icon: Layout,
+            color: "blue-500",
+          },
+          {
+            label: "Blog Nodes",
+            val: totals.blog,
+            icon: FileText,
+            color: "amber-500",
+          },
+        ].map((stat, i) => (
+          <div
+            key={i}
+            className="bg-charcoal border border-white/5 p-5 rounded-none shadow-2xl shadow-black/40 group hover:border-gold/20 transition-all"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em] group-hover:text-white/40 transition-colors">
+                {stat.label}
+              </span>
+              <stat.icon
+                size={14}
+                className={`text-${stat.color} opacity-40 group-hover:opacity-100 transition-opacity`}
+              />
             </div>
-            <div className="h-12 w-12 flex items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <Boxes size={24} />
+            <div className="text-3xl font-black text-white tracking-widest">
+              {stat.val}
             </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-card to-primary/5 border-primary/20 shadow-sm rounded-2xl">
-          <CardContent className="p-5 flex items-center justify-between">
-            <div>
-              <p className="text-[10px] uppercase font-bold tracking-widest text-primary/70 mb-1">
-                Products
-              </p>
-              <p className="text-3xl font-black text-primary">
-                {totals.product}
-              </p>
-            </div>
-            <div className="h-12 w-12 flex items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <Package size={24} />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-card to-purple-500/5 border-purple-500/20 shadow-sm rounded-2xl">
-          <CardContent className="p-5 flex items-center justify-between">
-            <div>
-              <p className="text-[10px] uppercase font-bold tracking-widest text-purple-400 mb-1">
-                Portfolio
-              </p>
-              <p className="text-3xl font-black text-purple-500">
-                {totals.portfolio}
-              </p>
-            </div>
-            <div className="h-12 w-12 flex items-center justify-center rounded-xl bg-purple-500/10 text-purple-500">
-              <Layout size={24} />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-card to-amber-500/5 border-amber-500/20 shadow-sm rounded-2xl">
-          <CardContent className="p-5 flex items-center justify-between">
-            <div>
-              <p className="text-[10px] uppercase font-bold tracking-widest text-amber-500 mb-1">
-                Blog
-              </p>
-              <p className="text-3xl font-black text-amber-600">
-                {totals.blog}
-              </p>
-            </div>
-            <div className="h-12 w-12 flex items-center justify-center rounded-xl bg-amber-500/10 text-amber-500">
-              <FileText size={24} />
-            </div>
-          </CardContent>
-        </Card>
+          </div>
+        ))}
       </div>
 
-      {/* Editor Form Modal/Inline */}
+      {/* Inline Editor Form */}
       {showForm && (
-        <Card className="border-border/60 shadow-xl relative overflow-hidden rounded-2xl p-1 bg-gradient-to-b from-card to-surface pb-0 animate-in fade-in slide-in-from-top-4">
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-purple-500 to-primary/50" />
-          <CardHeader className="pt-6 pb-4 px-6 border-b border-border/40">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
-                  <Tag size={20} />
-                </div>
-                <div>
-                  <CardTitle className="text-xl font-bold">
-                    {editingId
-                      ? "Edit Category Details"
-                      : "Create New Category"}
-                  </CardTitle>
-                  <CardDescription className="text-sm mt-0.5">
-                    Define the name, path, and precise hierarchical placement.
-                  </CardDescription>
-                </div>
+        <div className="bg-charcoal border-l-4 border-gold p-8 space-y-8 shadow-2xl shadow-black/60 animate-in slide-in-from-top-4 duration-500">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 bg-ink border border-gold/20 flex items-center justify-center text-gold">
+                <Tag size={20} />
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={resetForm}
-                className="h-10 w-10 bg-muted/50 hover:bg-muted rounded-full"
-              >
-                <X size={18} />
-              </Button>
+              <div>
+                <h3 className="text-xl font-black text-white uppercase tracking-widest">
+                  {editingId
+                    ? "Modify Category"
+                    : "Add New Category"}
+                </h3>
+                <p className="text-[9px] font-bold text-white/20 uppercase tracking-widest italic mt-1">
+                  Configure hierarchical categories for gemstone network.
+                </p>
+              </div>
             </div>
-          </CardHeader>
-          <CardContent className="px-6 py-8 bg-card/50">
-            <form onSubmit={handleSubmit} className="space-y-8">
-              <div className="grid md:grid-cols-2 gap-8">
-                <div className="space-y-3">
-                  <Label className="text-[13px] font-bold text-muted-foreground uppercase tracking-wider">
-                    Category Name
-                  </Label>
-                  <Input
-                    placeholder="e.g. Modern Sofas"
-                    value={form.name}
-                    onChange={(e) =>
-                      setForm((prev) => ({ ...prev, name: e.target.value }))
-                    }
-                    className="h-12 border-border/80 bg-surface focus-visible:ring-primary/30 text-base"
-                    required
-                  />
-                </div>
-                <div className="space-y-3">
-                  <Label className="text-[13px] font-bold text-muted-foreground uppercase tracking-wider">
-                    URL Slug / Path
-                  </Label>
-                  <Input
-                    placeholder="modern-sofas"
-                    value={form.slug}
-                    onChange={(e) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        slug: e.target.value
-                          .toLowerCase()
-                          .replace(/[^a-z0-9-]/g, "-"),
-                      }))
-                    }
-                    className="h-12 font-mono text-sm border-border/80 bg-surface focus-visible:ring-primary/30"
-                    required
-                  />
-                </div>
+            <button
+              onClick={resetForm}
+              className="h-10 w-10 bg-ink border border-white/5 text-white/20 hover:text-white transition-all flex items-center justify-center"
+            >
+              <X size={18} />
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-8">
+            <div className="grid md:grid-cols-2 gap-8">
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-white/40 uppercase tracking-widest">
+                  Category Name
+                </label>
+                <input
+                  placeholder="e.g. RINGS AND PENDANTS"
+                  value={form.name}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, name: e.target.value }))
+                  }
+                  className="w-full h-12 bg-ink border border-white/10 rounded-sm px-4 text-xs font-black text-white uppercase tracking-widest focus:border-gold outline-none"
+                />
               </div>
-
-              <div className="grid md:grid-cols-2 gap-8">
-                <div className="space-y-3">
-                  <Label className="text-[13px] font-bold text-muted-foreground uppercase tracking-wider">
-                    Taxonomy Base Type
-                  </Label>
-                  <Select
-                    value={form.type}
-                    onValueChange={(v: CategoryType) =>
-                      setForm((prev) => ({ ...prev, type: v }))
-                    }
-                  >
-                    <SelectTrigger className="h-12 border-border/80 bg-surface focus-visible:ring-primary/30 font-medium">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="product">Product Catalog</SelectItem>
-                      <SelectItem value="portfolio">
-                        Portfolio Galley
-                      </SelectItem>
-                      <SelectItem value="blog">Blog Articles</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-3">
-                  <Label className="text-[13px] font-bold text-muted-foreground uppercase tracking-wider">
-                    Parent Node Link
-                  </Label>
-                  <Select
-                    value={form.parentId || "none"}
-                    onValueChange={(v) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        parentId: v === "none" ? null : v,
-                      }))
-                    }
-                  >
-                    <SelectTrigger className="h-12 border-border/80 bg-surface focus-visible:ring-primary/30 font-medium">
-                      <SelectValue placeholder="No Parent (Top Level)" />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-[300px]">
-                      <SelectItem
-                        value="none"
-                        className="font-bold text-primary"
-                      >
-                        -- No Parent Node (Standalone Key) --
-                      </SelectItem>
-                      {categories
-                        .filter(
-                          (c) => c.type === form.type && c._id !== editingId,
-                        )
-                        .map((c) => {
-                          const n = c.title || "Unnamed";
-
-                          return (
-                            <SelectItem key={c._id} value={c._id}>
-                              {n}{" "}
-                              <span className="text-muted-foreground block text-[10px] font-mono">
-                                /{c.slug}
-                              </span>
-                            </SelectItem>
-                          );
-                        })}
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-white/40 uppercase tracking-widest">
+                  Network Slug
+                </label>
+                <input
+                  placeholder="rings-and-pendants"
+                  value={form.slug}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      slug: e.target.value
+                        .toLowerCase()
+                        .replace(/[^a-z0-9-]/g, "-"),
+                    }))
+                  }
+                  className="w-full h-12 bg-ink border border-white/10 rounded-sm px-4 text-xs font-mono font-bold text-gold lowercase tracking-widest focus:border-gold outline-none"
+                />
               </div>
+            </div>
 
-              <div className="grid md:grid-cols-2 gap-8">
-                <div className="space-y-3">
-                  <Label className="text-[13px] font-bold text-muted-foreground uppercase tracking-wider">
-                    Page Status
-                  </Label>
-                  <Select
-                    value={form.pageStatus}
-                    onValueChange={(v) =>
-                      setForm((prev) => ({ ...prev, pageStatus: v }))
-                    }
-                  >
-                    <SelectTrigger className="h-12 border-border/80 bg-surface focus-visible:ring-primary/30 font-medium">
-                      <SelectValue placeholder="Select Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="draft">Draft</SelectItem>
-                      <SelectItem value="published">Published</SelectItem>
-                      <SelectItem value="archived">Archived</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-3">
-                  <Label className="text-[13px] font-bold text-muted-foreground uppercase tracking-wider">
-                    Banner Image URL
-                  </Label>
-                  <Input
-                    placeholder="https://example.com/banner.jpg"
+            <div className="grid md:grid-cols-2 gap-8">
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-white/40 uppercase tracking-widest">
+                  Taxonomy Type
+                </label>
+                <select
+                  value={form.type}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      type: e.target.value as CategoryType,
+                    }))
+                  }
+                  className="w-full h-12 bg-ink border border-white/10 rounded-sm px-4 text-xs font-black text-white uppercase tracking-widest focus:border-gold outline-none appearance-none"
+                >
+                  <option value="product">Gemstone Catalog</option>
+                  <option value="portfolio">Portfolio Archive</option>
+                  <option value="blog">Blog Stream</option>
+                </select>
+              </div>
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-white/40 uppercase tracking-widest">
+                  Parent Node
+                </label>
+                <select
+                  value={form.parentId || "none"}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      parentId:
+                        e.target.value === "none" ? null : e.target.value,
+                    }))
+                  }
+                  className="w-full h-12 bg-ink border border-white/10 rounded-sm px-4 text-xs font-black text-white uppercase tracking-widest focus:border-gold outline-none appearance-none"
+                >
+                  <option value="none">-- NO PARENT (ROOT CATEGORY) --</option>
+                  {categories
+                    .filter((c) => c.type === form.type && c._id !== editingId)
+                    .map((c) => (
+                      <option key={c._id} value={c._id}>
+                        {c.name || c.title}
+                      </option>
+                    ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-8">
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-white/40 uppercase tracking-widest">
+                  Page Status
+                </label>
+                <select
+                  value={form.pageStatus}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, pageStatus: e.target.value }))
+                  }
+                  className="w-full h-12 bg-ink border border-white/10 rounded-sm px-4 text-xs font-black text-white uppercase tracking-widest focus:border-gold outline-none appearance-none"
+                >
+                  <option value="published">Published</option>
+                  <option value="draft">Draft</option>
+                  <option value="archived">Archived</option>
+                </select>
+              </div>
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-white/40 uppercase tracking-widest">
+                  Banner Image
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    placeholder="BANNER IMAGE URL"
                     value={form.bannerImageUrl}
                     onChange={(e) =>
                       setForm((prev) => ({
@@ -646,18 +566,34 @@ export default function CategoriesPage() {
                         bannerImageUrl: e.target.value,
                       }))
                     }
-                    className="h-12 border-border/80 bg-surface focus-visible:ring-primary/30 text-base"
+                    className="flex-1 h-12 bg-ink border border-white/10 rounded-sm px-4 text-xs font-bold text-white tracking-widest focus:border-gold outline-none"
+                  />
+                  <MediaLibraryModal
+                    onSelect={(media) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        bannerImageUrl: media.url,
+                      }))
+                    }
+                    trigger={
+                      <button
+                        type="button"
+                        className="h-12 w-12 bg-ink border border-white/10 text-gold hover:bg-gold/10 flex items-center justify-center transition-all"
+                      >
+                        <ImageIcon size={20} />
+                      </button>
+                    }
                   />
                 </div>
               </div>
+            </div>
 
+            <div className="grid md:grid-cols-2 gap-8">
               <div className="space-y-3">
-                <Label className="text-[13px] font-bold text-muted-foreground uppercase tracking-wider">
-                  Internal Description{" "}
-                  <span className="font-normal opacity-60">(Optional)</span>
-                </Label>
-                <Textarea
-                  placeholder="Describe what items live within this category node..."
+                <label className="text-[10px] font-black text-white/40 uppercase tracking-widest">
+                  Category Description (Optional)
+                </label>
+                <textarea
                   value={form.description}
                   onChange={(e) =>
                     setForm((prev) => ({
@@ -665,160 +601,183 @@ export default function CategoriesPage() {
                       description: e.target.value,
                     }))
                   }
-                  className="min-h-[120px] resize-none border-border/80 bg-surface focus-visible:ring-primary/30 text-base"
+                  placeholder="Describe what items belong to this category..."
+                  className="w-full h-24 bg-ink border border-white/10 rounded-sm p-4 text-xs font-bold text-white uppercase tracking-widest focus:border-gold outline-none resize-none"
                 />
               </div>
-
-              <div className="grid md:grid-cols-2 gap-8">
-                <div className="space-y-3">
-                  <Label className="text-[13px] font-bold text-muted-foreground uppercase tracking-wider">
-                    Meta Title
-                  </Label>
-                  <Input
-                    placeholder="SEO meta title"
-                    value={form.metaTitle}
-                    onChange={(e) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        metaTitle: e.target.value,
-                      }))
-                    }
-                    className="h-12 border-border/80 bg-surface focus-visible:ring-primary/30 text-base"
-                  />
-                </div>
-                <div className="space-y-3">
-                  <Label className="text-[13px] font-bold text-muted-foreground uppercase tracking-wider">
-                    Meta Description
-                  </Label>
-                  <Input
-                    placeholder="SEO meta description"
-                    value={form.metaDescription}
-                    onChange={(e) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        metaDescription: e.target.value,
-                      }))
-                    }
-                    className="h-12 border-border/80 bg-surface focus-visible:ring-primary/30 text-base"
-                  />
-                </div>
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-white/40 uppercase tracking-widest">
+                  Meta Title (SEO)
+                </label>
+                <input
+                  placeholder="SEO meta title"
+                  value={form.metaTitle}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, metaTitle: e.target.value }))
+                  }
+                  className="w-full h-12 bg-ink border border-white/10 rounded-sm px-4 text-xs font-bold text-white uppercase tracking-widest focus:border-gold outline-none"
+                />
               </div>
+            </div>
 
-              <div className="flex justify-end gap-3 pt-6">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={resetForm}
-                  className="h-12 px-8 font-semibold rounded-xl border-border/80 hover:bg-muted"
-                >
-                  Cancel Setup
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={saving}
-                  className="h-12 px-8 font-bold gap-2 rounded-xl text-md"
-                >
-                  {saving ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <Save className="h-5 w-5" />
-                  )}
-                  {editingId ? "Save Changes" : "Build Category"}
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+            <div className="space-y-3">
+              <label className="text-[10px] font-black text-white/40 uppercase tracking-widest">
+                Global Meta description (SEO)
+              </label>
+              <textarea
+                value={form.metaDescription}
+                onChange={(e) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    metaDescription: e.target.value,
+                  }))
+                }
+                className="w-full h-24 bg-ink border border-white/10 rounded-sm p-4 text-xs font-bold text-white uppercase tracking-widest focus:border-gold outline-none resize-none"
+              />
+            </div>
+
+            <div className="flex justify-end gap-4 pt-6 border-t border-white/5">
+              <button
+                type="button"
+                onClick={resetForm}
+                className="h-12 px-8 bg-charcoal border border-white/10 text-white/40 font-black text-[10px] uppercase tracking-widest hover:text-white"
+              >
+                Abort
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="h-12 px-12 bg-olive text-white font-black text-[10px] uppercase tracking-widest shadow-2xl shadow-olive/20 flex items-center gap-3"
+              >
+                {saving ? (
+                  <div className="h-4 w-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <Save size={16} />
+                )}
+                {editingId ? "Update Category" : "Create Category"}
+              </button>
+            </div>
+          </form>
+        </div>
       )}
 
-      {/* Workspace & Tools */}
-      <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-card border border-border/70 rounded-2xl p-2 px-3 shadow-xs">
-        <div className="flex gap-1 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+      {/* Controls & Search */}
+      <div className="flex flex-col sm:flex-row gap-6 items-center justify-between bg-charcoal p-5 rounded-none border border-white/5 shadow-2xl shadow-black/40">
+        <div className="flex gap-2 w-full sm:w-auto overflow-x-auto custom-scrollbar pb-2 sm:pb-0">
           {(["", "product", "portfolio", "blog"] as const).map((type) => (
             <button
               key={type || "all"}
               onClick={() => setTypeFilter(type)}
-              className={`px-5 py-2.5 rounded-xl text-[13px] whitespace-nowrap font-bold capitalize transition-all duration-200 ${
+              className={`px-6 py-2 rounded-none text-[10px] font-black uppercase tracking-widest transition-all ${
                 typeFilter === type
-                  ? "bg-primary text-primary-foreground shadow-md transform scale-[1.02]"
-                  : "text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+                  ? "bg-gold text-ink"
+                  : "bg-ink border border-white/5 text-white/20 hover:text-white"
               }`}
             >
-              {type || "All Branches"}
+              {type || "Unified Grid"}
             </button>
           ))}
         </div>
 
-        <div className="relative w-full sm:w-[360px]">
+        <div className="relative w-full sm:w-[400px] group">
           <Search
-            className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground"
-            size={18}
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-gold transition-colors"
+            size={16}
           />
-          <Input
-            placeholder="Search hierarchy..."
+          <input
+            placeholder="SEARCH HIERARCHY MATRIX..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full h-11 pl-11 bg-surface border-border/60 focus-visible:ring-primary/30 rounded-xl text-sm transition-shadow font-medium"
+            className="w-full h-11 pl-12 pr-4 bg-ink border border-white/10 rounded-sm text-xs font-black uppercase tracking-widest text-white placeholder:text-white/10 focus:border-gold outline-none"
           />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1"
-            >
-              <X size={16} />
-            </button>
-          )}
         </div>
       </div>
 
-      {/* Data Tree Rendering */}
-      <div className="w-full">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-32 gap-4 text-muted-foreground bg-card rounded-3xl border border-border/50">
-            <Loader2 className="h-10 w-10 animate-spin text-primary/40" />
-            <span className="font-semibold tracking-wide">
-              Syncing Taxonomy Matrix...
+      {/* Hierarchy Table */}
+      <div className="bg-charcoal border border-white/5 rounded-none overflow-hidden shadow-2xl shadow-black/80">
+        <Table>
+          <TableHeader className="bg-ink/60 border-b border-white/5">
+            <TableRow className="hover:bg-transparent border-none h-16">
+              <TableHead className="text-[10px] font-black uppercase tracking-[0.25em] text-white/20 px-8">
+                Category Hierarchy
+              </TableHead>
+              <TableHead className="text-[10px] font-black uppercase tracking-[0.25em] text-white/20 text-center">
+                Protocol
+              </TableHead>
+              <TableHead className="text-[10px] font-black uppercase tracking-[0.25em] text-white/20">
+                Sub-categories
+              </TableHead>
+              <TableHead className="text-right text-[10px] font-black uppercase tracking-[0.25em] text-white/20 px-8">
+                Category Actions
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              <TableRow className="border-none hover:bg-transparent">
+                <TableCell colSpan={4} className="h-64 text-center">
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="h-8 w-8 border-2 border-white/5 border-t-gold rounded-full animate-spin shadow-lg shadow-gold/20" />
+                    <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/20 italic animate-pulse">
+                      Syncing Category Tree...
+                    </span>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : tree.length === 0 ? (
+              <TableRow className="border-none hover:bg-transparent">
+                <TableCell colSpan={4} className="h-64 text-center">
+                  <div className="flex flex-col items-center gap-6 opacity-10 italic">
+                    <FolderTree size={48} />
+                    <span className="text-[10px] font-black uppercase tracking-[0.4em]">
+                      No categories found in inventory.
+                    </span>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : (
+              renderRows(tree)
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Footer Intel */}
+      <div className="flex items-center gap-3 opacity-40">
+        <Terminal size={14} className="text-gold" />
+        <span className="text-[8px] font-black text-white/40 uppercase tracking-[0.4em]">
+          Admin Access Level: Authorized Level-4 | Inventory Sync: Active
+        </span>
+      </div>
+
+      <ImportModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onImport={handleImport}
+        sampleData={categorySampleData}
+        title="Category Import"
+        description="Synchronize bulk categories via secure JSON manifest."
+        fileName="categories"
+      />
+    </div>
+  );
+}
+
+export default function CategoriesPage() {
+  return (
+    <div className="p-4 md:p-8 min-h-screen bg-ink">
+      <Suspense
+        fallback={
+          <div className="h-[60vh] flex flex-col items-center justify-center gap-4">
+            <div className="h-8 w-8 border-2 border-white/5 border-t-gold rounded-full animate-spin shadow-lg shadow-gold/20" />
+            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/20 italic">
+              Initializing Management Hub...
             </span>
           </div>
-        ) : tree.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-28 px-4 text-center bg-card rounded-3xl border border-border/50 shadow-sm">
-            <div className="h-20 w-20 mb-6 rounded-2xl bg-muted/50 flex flex-col items-center justify-center text-muted-foreground shadow-inner border border-border">
-              <FolderTree size={32} />
-            </div>
-            <h3 className="font-extrabold text-2xl mb-2 text-foreground">
-              No Categories Found
-            </h3>
-            <p className="text-muted-foreground text-sm max-w-sm mb-8 leading-relaxed">
-              Your hierarchy is currently empty. Click the button below to
-              initialize your first root category.
-            </p>
-            <Button
-              onClick={() => openCreate(null)}
-              className="h-12 px-8 font-bold shadow-md rounded-xl text-md"
-            >
-              Initialize Matrix
-            </Button>
-          </div>
-        ) : (
-          <Card className="rounded-2xl border-border/60 shadow-sm overflow-hidden bg-card">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/30">
-                  <TableHead className="font-bold">Category</TableHead>
-                  <TableHead className="font-bold w-[150px]">Level</TableHead>
-                  <TableHead className="font-bold w-[120px]">
-                    Sub-Items
-                  </TableHead>
-                  <TableHead className="font-bold text-right w-[150px]">
-                    Actions
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>{renderRows(tree, 0)}</TableBody>
-            </Table>
-          </Card>
-        )}
-      </div>
+        }
+      >
+        <CategoriesPageContent />
+      </Suspense>
     </div>
   );
 }

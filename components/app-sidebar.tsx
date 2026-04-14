@@ -50,7 +50,7 @@ import Link from "next/link";
 
 const NAV_ITEMS = [
   {
-    group: "Divine Overview",
+    group: "General Overview",
     items: [
       {
         label: "Dashboard",
@@ -60,7 +60,7 @@ const NAV_ITEMS = [
         badge: null,
       },
       {
-        label: "Spiritual Orders",
+        label: "Orders",
         href: "/admin/orders",
         icon: ShoppingCart,
         exact: false,
@@ -69,32 +69,32 @@ const NAV_ITEMS = [
     ],
   },
   {
-    group: "Gemstone Empire",
+    group: "Product Catalog",
     items: [
       {
-        label: "Gemstones",
+        label: "Products",
         href: "/admin/products",
         icon: Gem,
         exact: false,
         badge: null,
       },
       {
-        label: "Rashi / Zodiac",
+        label: "Categories",
         href: "/admin/categories",
         icon: Sparkles,
         exact: false,
         badge: null,
       },
       {
-        label: "Lab Certifications",
+        label: "Attributes",
         href: "/admin/attributes",
         icon: ShieldCheck,
         exact: false,
         badge: null,
       },
       {
-        label: "Astrology Recs",
-        href: "/admin/attributes",
+        label: "Consultations",
+        href: "/admin/consultations",
         icon: Zap,
         exact: false,
         badge: "New",
@@ -102,7 +102,7 @@ const NAV_ITEMS = [
     ],
   },
   {
-    group: "Patronage & Spirit",
+    group: "Customer Relations",
     items: [
       {
         label: "Customers",
@@ -121,7 +121,7 @@ const NAV_ITEMS = [
     ],
   },
   {
-    group: "Sacred Content",
+    group: "Content & Media",
     items: [
       {
         label: "Pages",
@@ -131,7 +131,7 @@ const NAV_ITEMS = [
         badge: null,
       },
       {
-        label: "Gem Media",
+        label: "Media Library",
         href: "/admin/media",
         icon: Image,
         exact: false,

@@ -40,6 +40,14 @@ export interface ProductFormState {
   relatedProductIds: string[];
   templateKey: string;
   price?: string;
+  gemstoneDetails?: {
+    carat?: string;
+    cut?: string;
+    clarity?: string;
+    origin?: string;
+    treatment?: string;
+    certification?: string;
+  };
 }
 
 interface ProductsState {
@@ -179,6 +187,7 @@ const productsSlice = createSlice({
           primaryCategoryId: p.primaryCategoryId || "",
           relatedProductIds: p.relatedProductIds || [],
           templateKey: p.templateKey || "product-split",
+          gemstoneDetails: p.gemstoneDetails || undefined,
         };
       })
       .addCase(fetchProductById.rejected, (state, action) => {

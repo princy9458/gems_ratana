@@ -2,35 +2,86 @@
 
 import { useEffect, useState } from "react";
 import {
-  ShoppingCart,
-  TrendingUp,
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  XAxis,
+  YAxis,
+  Tooltip,
+} from "recharts";
+import {
   Activity,
   ArrowUpRight,
   BarChart3,
-  Loader2,
-  Sparkles,
-  ShieldCheck,
+  Layers,
+  Package,
+  ShoppingCart,
+  Tag,
+  Boxes,
   Zap,
-  Gem,
-  Calendar,
+  Globe,
+  Shield,
+  Clock,
+  ChevronRight,
+  TrendingUp,
+  TrendingDown,
+  Target,
+  Terminal,
+  Lock,
+  Radio,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
+import { Button } from "@/components/ui/button";
+import { motion } from "motion/react";
+import { cn } from "@/lib/utils";
 import { useSelector } from "react-redux";
 import { RootState } from "@/lib/store/store";
-import { cn } from "@/lib/utils";
 import { useAppSelector } from "@/lib/store/hooks";
 
-const chartConfig = {
-  ruby: { label: "Ruby", color: "#9B111E" },
-  emerald: { label: "Emerald", color: "#0B3D2E" },
-  sapphire: { label: "Sapphire", color: "#D4AF37" },
-};
+const revenueData = [
+  { month: "JAN", revenue: 4200 },
+  { month: "FEB", revenue: 5100 },
+  { month: "MAR", revenue: 3800 },
+  { month: "APR", revenue: 6200 },
+  { month: "MAY", revenue: 7300 },
+  { month: "JUN", revenue: 8100 },
+  { month: "JUL", revenue: 9400 },
+];
+
+const statDefinitions = [
+  {
+    key: "products",
+    label: "Total Products",
+    icon: Package,
+    subLabel: "In Stock",
+    trend: "+2.1%",
+    isUp: true,
+  },
+  {
+    key: "categories",
+    label: "Total Categories",
+    icon: Layers,
+    subLabel: "Category Structure",
+    trend: "+12.4%",
+    isUp: true,
+  },
+  {
+    key: "orders",
+    label: "Total Orders",
+    icon: ShoppingCart,
+    subLabel: "Recent Activity",
+    trend: "+12%",
+    isUp: true,
+  },
+  {
+    key: "attributes",
+    label: "Product Attributes",
+    icon: Tag,
+    subLabel: "Management Hub",
+    trend: "Nominal",
+    isUp: false,
+  },
+];
 
 export default function AdminDashboard() {
   const { allCategories, categoryLoading } = useAppSelector(
@@ -40,234 +91,308 @@ export default function AdminDashboard() {
     (state: RootState) => state.adminAttributes,
   );
 
-  const { allProducts, loading: productsLoading } = useAppSelector(
+  const { allProducts, loading } = useAppSelector(
     (state: RootState) => state.adminProducts,
   );
-  const { gemsratnaUser, isLoading: authLoading } = useSelector(
-    (state: RootState) => state.auth,
-  );
+
+  const { gemsratnaUser: user } = useSelector((state: RootState) => state.auth);
+
+  const mainLoading = categoryLoading && attributeLoading && loading;
 
   const stats = {
-    totalGems: allProducts?.length || 0,
-    activeOrders: 12, // Mocked for design
-    certifiedGems: Math.floor((allProducts?.length || 0) * 0.85),
-    pendingConsultations: 4,
-    revenue: "₹12,45,000",
-    topSeller: "Natural Blue Sapphire",
+    products: allProducts?.length || 0,
+    categories: allCategories?.length || 0,
+    orders: 0,
+    attributes: allattributes?.length || 0,
   };
 
-  const salesTrendData = [
-    { month: "Jan", ruby: 4000, emerald: 2400, sapphire: 3200 },
-    { month: "Feb", ruby: 3000, emerald: 1398, sapphire: 5100 },
-    { month: "Mar", ruby: 2000, emerald: 9800, sapphire: 2290 },
-    { month: "Apr", ruby: 2780, emerald: 3908, sapphire: 2000 },
-    { month: "May", ruby: 1890, emerald: 4800, sapphire: 2181 },
-    { month: "Jun", ruby: 2390, emerald: 3800, sapphire: 2500 },
-    { month: "Jul", ruby: 3490, emerald: 4300, sapphire: 2100 },
-  ];
-
-  if (authLoading || !gemsratnaUser) {
-    return (
-      <div className="flex items-center justify-center min-h-[80vh] bg-luxury-ivory">
-        <div className="flex flex-col items-center gap-4">
-          <div className="relative">
-            <div className="w-20 h-20 border-4 border-luxury-gold/20 rounded-full" />
-            <div className="absolute top-0 left-0 w-20 h-20 border-4 border-luxury-gold border-t-transparent rounded-full animate-spin" />
-          </div>
-          <p className="text-lg font-playfair font-bold text-luxury-black">Awakening Portal...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-12 font-poppins pb-20 bg-luxury-ivory min-h-screen">
-      {/* Header Banner */}
-      <div className="relative overflow-hidden rounded-[40px] p-12 border border-luxury-gold/20 bg-luxury-black shadow-2xl">
-        <div className="absolute top-0 right-0 -mt-20 -mr-20 opacity-10">
-          <Sparkles className="w-[500px] h-[500px] text-luxury-gold" />
-        </div>
-        <div className="relative z-10 flex flex-col gap-6">
-          <div className="inline-flex items-center gap-2 text-luxury-gold font-black text-[10px] uppercase tracking-[0.4em] bg-luxury-gold/10 w-max px-6 py-2 rounded-full backdrop-blur-md border border-luxury-gold/20">
-            <span className="relative flex h-2 w-2 mr-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-luxury-gold opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-luxury-gold"></span>
+    <div className="flex flex-col space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
+      {/* HEADER SECTION */}
+      <section className="flex flex-col md:flex-row md:items-end justify-between gap-8 pb-8 border-b border-white/5">
+        <div className="space-y-3">
+          <div className="flex items-center gap-3 text-gold opacity-60">
+            <Terminal size={14} />
+            <span className="text-[10px] font-black uppercase tracking-[0.4em] italic">
+              System Authorization: Master Access
             </span>
-            Imperial Presence Active
           </div>
-          <h1 className="text-6xl md:text-8xl font-playfair font-medium text-white italic leading-none">
-            GemsRatna <span className="text-luxury-gold opacity-50">Vault</span>
+          <h1 className="text-5xl font-head font-black text-white uppercase tracking-tighter leading-none">
+            Dashboard
           </h1>
-          <p className="text-white/60 text-xl max-w-2xl font-light italic leading-relaxed">
-            Overseeing the luxury spiritual gemstone empire. Track cosmic orders, certified rarities, and sacred consultations.
+          <p className="text-sm font-medium text-white/40 italic flex items-center gap-2">
+            Monitoring inventory and store performance on the{" "}
+            <span className="text-gold font-bold uppercase tracking-widest text-[10px] ring-1 ring-gold/20 px-2 py-0.5 bg-gold/5 rounded-sm italic">
+              GemsRatna Management
+            </span>{" "}
+            grid.
           </p>
         </div>
-      </div>
 
-      {/* Stats Cards */}
-      <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        {[
-          { label: "Total Gems", value: stats.totalGems, icon: Gem, color: "text-luxury-gold", bg: "bg-luxury-gold/5" },
-          { label: "Active Orders", value: stats.activeOrders, icon: ShoppingCart, color: "text-emerald-500", bg: "bg-emerald-500/5" },
-          { label: "Certified Gems", value: stats.certifiedGems, icon: ShieldCheck, color: "text-blue-500", bg: "bg-blue-500/5" },
-          { label: "Consultations", value: stats.pendingConsultations, icon: Calendar, color: "text-purple-500", bg: "bg-purple-500/5" },
-          { label: "Revenue", value: stats.revenue, icon: TrendingUp, color: "text-luxury-gold", bg: "bg-luxury-gold/5" },
-          { label: "Top Seller", value: "Sapphire", icon: Sparkles, color: "text-amber-500", bg: "bg-amber-500/5" },
-        ].map((item, i) => (
-          <Card key={i} className="relative overflow-hidden rounded-3xl border border-luxury-gold/10 bg-white/50 backdrop-blur-sm shadow-lg hover:shadow-luxury-gold/20 hover:-translate-y-2 transition-all duration-700 group">
-             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                <CardTitle className="text-[9px] font-black uppercase tracking-[0.3em] text-luxury-black/40">
-                  {item.label}
-                </CardTitle>
-             </CardHeader>
-             <CardContent>
-                <div className="flex items-center justify-between">
-                   <div className="text-2xl font-playfair font-bold text-luxury-black">
-                      {item.value}
-                   </div>
-                   <div className={cn("p-3 rounded-2xl border border-black/5 transition-transform group-hover:scale-110", item.bg)}>
-                      <item.icon className={cn("h-5 w-5", item.color)} />
-                   </div>
-                </div>
-             </CardContent>
-             <div className="absolute bottom-0 left-0 h-1 w-full bg-gradient-to-r from-transparent via-luxury-gold/30 to-transparent scale-x-0 group-hover:scale-x-100 transition-transform duration-700" />
-          </Card>
+        <div className="flex items-center gap-4 bg-charcoal p-4 rounded-sm border border-white/5 shadow-2xl shadow-black/40">
+          <div className="flex flex-col items-end px-4 border-r border-white/5">
+            <span className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em] mb-1">
+              System Status 
+            </span>
+            <span className="text-emerald-400 font-bold flex items-center gap-2 text-xs uppercase tracking-widest italic outline-none">
+              <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shadow-lg shadow-emerald-500/40" />{" "}
+              Live Sync
+            </span>
+          </div>
+          <div className="flex flex-col items-end px-2">
+            <span className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em] mb-1">
+              Sync Status
+            </span>
+            <span className="text-white/80 font-bold text-xs uppercase tracking-widest italic">
+              Encrypted
+            </span>
+          </div>
+        </div>
+      </section>
+
+      {/* STATS CARDS */}
+      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {statDefinitions.map((stat, idx) => (
+          <motion.div
+            key={stat.key}
+            className="group relative bg-charcoal border border-white/5 p-6 rounded-sm hover:border-gold/30 transition-all duration-500 shadow-2xl shadow-black/40 overflow-hidden"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: idx * 0.1 }}
+          >
+            {/* Background Accent */}
+            <div className="absolute top-0 right-0 w-24 h-24 bg-gold/5 -rotate-45 translate-x-12 -translate-y-12 transition-transform group-hover:scale-150 duration-700" />
+
+            <div className="relative z-10 flex items-start justify-between mb-8">
+              <div className="h-14 w-14 flex items-center justify-center rounded-sm bg-olive/10 border border-olive/30 group-hover:bg-olive group-hover:text-white transition-all ring-1 ring-gold/5 group-hover:ring-gold/20 shadow-inner">
+                <stat.icon
+                  size={24}
+                  className="text-gold group-hover:text-white transition-colors duration-300"
+                />
+              </div>
+              <div
+                className={cn(
+                  "flex items-center gap-2 px-3 py-1.5 rounded-sm text-[9px] font-black uppercase tracking-widest border italic",
+                  stat.isUp
+                    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                    : "bg-white/5 text-white/30 border-white/5",
+                )}
+              >
+                {stat.isUp ? (
+                  <TrendingUp size={12} />
+                ) : (
+                  <Radio size={12} className="animate-pulse" />
+                )}{" "}
+                {stat.trend}
+              </div>
+            </div>
+
+            <div className="relative z-10 space-y-2">
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/20 group-hover:text-gold/50 transition-colors">
+                {stat.label}
+              </p>
+              <div className="flex items-baseline gap-3">
+                <span className="text-4xl font-head font-black text-white tracking-tighter tabular-nums leading-none">
+                  {mainLoading ? "---" : stats[stat.key as keyof typeof stats]}
+                </span>
+                <span className="text-white/20 font-bold text-[9px] uppercase tracking-widest italic group-hover:text-gold/30 transition-colors">
+                  {stat.subLabel}
+                </span>
+              </div>
+            </div>
+          </motion.div>
         ))}
-      </div>
+      </section>
 
-      <div className="grid gap-10 lg:grid-cols-12">
-        {/* Analytics Section */}
-        <Card className="lg:col-span-8 rounded-[40px] border border-luxury-gold/10 bg-white shadow-2xl p-10">
-          <CardHeader className="px-0 pt-0 mb-10">
-            <div className="flex items-center justify-between">
-               <div>
-                  <p className="text-luxury-gold text-[10px] font-black uppercase tracking-[0.5em] mb-4">Market Presence</p>
-                  <CardTitle className="font-playfair text-4xl italic">Spiritual Sales Insights</CardTitle>
-               </div>
-               <div className="flex gap-4">
-                  {['Ruby', 'Emerald', 'Sapphire'].map((gem) => (
-                    <div key={gem} className="flex items-center gap-2">
-                       <div className="w-2 h-2 rounded-full" style={{ backgroundColor: chartConfig[gem.toLowerCase() as keyof typeof chartConfig].color }} />
-                       <span className="text-[10px] font-black uppercase tracking-widest text-black/40">{gem}</span>
-                    </div>
-                  ))}
-               </div>
+      {/* CHARTS AND LISTS */}
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* REVENUE CHART */}
+        <div className="lg:col-span-2 bg-charcoal border border-white/5 rounded-sm p-10 shadow-2xl shadow-black/60 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 mt-6 mr-6 opacity-5 group-hover:opacity-20 transition-opacity">
+            <BarChart3 size={120} className="text-white" />
+          </div>
+
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between mb-12 gap-6">
+            <div className="space-y-2">
+              <h3 className="text-2xl font-head font-black text-white uppercase tracking-tighter">
+                Retail <span className="text-gold/80 italic">Performance</span>
+              </h3>
+              <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em] italic flex items-center gap-2">
+                <span className="w-4 h-px bg-white/10" /> 30-Day Sales Performance
+              </p>
             </div>
-          </CardHeader>
-          <CardContent className="px-0 pt-6">
-            <ChartContainer config={chartConfig} className="min-h-[400px] w-full">
-                <AreaChart data={salesTrendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorRuby" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={chartConfig.ruby.color} stopOpacity={0.1}/>
-                      <stop offset="95%" stopColor={chartConfig.ruby.color} stopOpacity={0}/>
-                    </linearGradient>
-                    <linearGradient id="colorEmerald" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={chartConfig.emerald.color} stopOpacity={0.1}/>
-                      <stop offset="95%" stopColor={chartConfig.emerald.color} stopOpacity={0}/>
-                    </linearGradient>
-                    <linearGradient id="colorSapphire" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={chartConfig.sapphire.color} stopOpacity={0.1}/>
-                      <stop offset="95%" stopColor={chartConfig.sapphire.color} stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" opacity={0.5} />
-                  <XAxis 
-                    dataKey="month" 
-                    axisLine={false} 
-                    tickLine={false} 
-                    tick={{ fill: 'rgba(0,0,0,0.3)', fontSize: 10, fontWeight: 900 }} 
-                    dy={12}
-                  />
-                  <YAxis 
-                    axisLine={false} 
-                    tickLine={false} 
-                    tick={{ fill: 'rgba(0,0,0,0.3)', fontSize: 10, fontWeight: 900 }}
-                  />
-                  <ChartTooltip content={<ChartTooltipContent className="bg-white border-luxury-gold/20 shadow-xl rounded-xl" />} />
-                  <Area type="monotone" dataKey="ruby" stroke={chartConfig.ruby.color} fillOpacity={1} fill="url(#colorRuby)" strokeWidth={4} />
-                  <Area type="monotone" dataKey="emerald" stroke={chartConfig.emerald.color} fillOpacity={1} fill="url(#colorEmerald)" strokeWidth={4} />
-                  <Area type="monotone" dataKey="sapphire" stroke={chartConfig.sapphire.color} fillOpacity={1} fill="url(#colorSapphire)" strokeWidth={4} />
-                </AreaChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-
-        {/* Activity Feed */}
-        <Card className="lg:col-span-4 rounded-[40px] border border-luxury-gold/10 bg-luxury-black shadow-2xl p-10">
-          <CardHeader className="px-0 pt-0 mb-10">
-            <p className="text-luxury-gold text-[10px] font-black uppercase tracking-[0.5em] mb-4">Ritual Logs</p>
-            <CardTitle className="font-playfair text-3xl text-white italic">Divine Activity Feed</CardTitle>
-          </CardHeader>
-          <CardContent className="px-0">
-             <div className="space-y-10 relative before:absolute before:left-[7px] before:top-2 before:bottom-2 before:w-[1px] before:bg-luxury-gold/10">
-                {[
-                  { title: "Ruby Pendant Ordered", meta: "By Patrón Ananya", time: "2m ago", type: "order" },
-                  { title: "New Astrology Booking", meta: "Pundit Consultation", time: "1h ago", type: "booking" },
-                  { title: "Emerald Restocked", meta: "Zambian Origins", time: "3h ago", type: "inventory" },
-                  { title: "New Kundli Generated", meta: "Saturn Alignment", time: "5h ago", type: "system" }
-                ].map((item, i) => (
-                  <div key={i} className="relative pl-10 group cursor-default">
-                    <div className="absolute left-0 top-1.5 w-3.5 h-3.5 rounded-full bg-luxury-black border border-luxury-gold/50 flex items-center justify-center group-hover:scale-125 transition-transform">
-                       <div className="w-1.5 h-1.5 rounded-full bg-luxury-gold" />
-                    </div>
-                    <div className="flex flex-col">
-                       <p className="text-white text-lg font-playfair font-medium transition-colors group-hover:text-luxury-gold">{item.title}</p>
-                       <div className="flex items-center gap-3 mt-1">
-                          <span className="text-[10px] font-black uppercase tracking-widest text-white/30">{item.meta}</span>
-                          <span className="text-[10px] text-white/10">•</span>
-                          <span className="text-[10px] font-medium text-luxury-gold/50">{item.time}</span>
-                       </div>
-                    </div>
-                  </div>
-                ))}
-             </div>
-             
-             <button className="w-full mt-16 py-5 border border-white/5 rounded-2xl text-white/30 text-[10px] font-black uppercase tracking-[0.4em] hover:bg-white/5 hover:text-luxury-gold transition-all">
-                Access All Chronicles
-             </button>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Gemstone List Section Placeholder */}
-      <section className="mt-10">
-         <div className="flex items-center justify-between mb-12">
-            <div>
-               <p className="text-luxury-gold text-[10px] font-black uppercase tracking-[0.5em] mb-4">Management</p>
-               <h2 className="text-4xl font-playfair font-medium text-luxury-black italic">Imperial Inventory</h2>
+            <div className="flex gap-3">
+              <button className="h-10 px-6 bg-olive text-white text-[10px] font-black uppercase tracking-widest rounded-sm hover:bg-olive-lt transition-all active:scale-95 shadow-xl shadow-olive/10">
+                Analyze Data
+              </button>
+              <button className="h-10 px-6 bg-white/5 border border-white/10 text-white/40 text-[10px] font-black uppercase tracking-widest rounded-sm hover:text-white hover:border-gold/30 transition-all">
+                Export Ledger
+              </button>
             </div>
-            <button className="bg-luxury-black text-white px-10 py-5 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-luxury-gold hover:text-black transition-all shadow-xl">
-               Add New Gemstone
-            </button>
-         </div>
-         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-10">
-            {allProducts?.slice(0, 4).map((p, i) => (
-               <div key={i} className="group bg-white rounded-[40px] overflow-hidden border border-luxury-gold/5 shadow-xl hover:shadow-2xl hover:-translate-y-4 transition-all duration-700">
-                  <div className="aspect-square relative overflow-hidden bg-muted flex items-center justify-center">
-                     {p.primaryImageId ? (
-                        <img src={`/api/media/${p.primaryImageId}`} alt={p.name} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" />
-                     ) : (
-                        <Gem className="w-12 h-12 text-luxury-gold/20" />
-                     )}
-                     <div className="absolute top-6 left-6 flex flex-col gap-2">
-                        <span className="px-4 py-1.5 bg-black/80 backdrop-blur-md text-white text-[9px] font-black uppercase tracking-widest rounded-full">Gemstone</span>
-                        <span className="px-4 py-1.5 bg-luxury-gold text-black text-[9px] font-black uppercase tracking-widest rounded-full">Certified</span>
-                     </div>
+          </div>
+
+          <div className="relative z-10 h-[380px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart
+                data={revenueData}
+                margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+              >
+                <defs>
+                  <linearGradient
+                    id="tacticalRevenueGradient"
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
+                  >
+                    <stop offset="5%" stopColor="#c9a227" stopOpacity={0.2} />
+                    <stop offset="95%" stopColor="#c9a227" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid
+                  strokeDasharray="4 4"
+                  vertical={false}
+                  stroke="rgba(255,255,255,0.03)"
+                />
+                <XAxis
+                  dataKey="month"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{
+                    fill: "rgba(255,255,255,0.2)",
+                    fontSize: 10,
+                    fontWeight: 900,
+                    letterSpacing: "0.15em",
+                  }}
+                />
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{
+                    fill: "rgba(255,255,255,0.2)",
+                    fontSize: 10,
+                    fontWeight: 900,
+                  }}
+                  tickFormatter={(val) => `₹${val / 1000}k`}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#1a1c1a",
+                    border: "1px solid rgba(201,162,39,0.2)",
+                    borderRadius: "0",
+                    fontSize: "12px",
+                    color: "#fff",
+                    fontWeight: 900,
+                  }}
+                  itemStyle={{ color: "#c9a227" }}
+                  cursor={{ stroke: "rgba(201,162,39,0.3)", strokeWidth: 2 }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="revenue"
+                  stroke="#c9a227"
+                  strokeWidth={4}
+                  fill="url(#tacticalRevenueGradient)"
+                  dot={{
+                    r: 5,
+                    fill: "#c9a227",
+                    stroke: "#111210",
+                    strokeWidth: 3,
+                  }}
+                  activeDot={{
+                    r: 8,
+                    fill: "#c9a227",
+                    stroke: "#fff",
+                    strokeWidth: 2,
+                  }}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* RECENT ACTIVITY */}
+        <div className="bg-charcoal border border-white/5 rounded-sm p-10 space-y-10 shadow-2xl shadow-black/60 relative group">
+          <div className="flex items-center justify-between pb-4 border-b border-white/5">
+            <h3 className="text-xl font-head font-black text-white uppercase tracking-tighter italic">
+              Recent <span className="text-gold/80">Orders</span>
+            </h3>
+            <div className="px-3 py-1.5 rounded-full bg-emerald-500/10 text-[8px] font-black uppercase text-emerald-400 tracking-[0.2em] border border-emerald-500/20 active-ring">
+              Live Feed Active
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            {[
+              {
+                label: "Ruby Pendant Ordered",
+                time: "2 min ago",
+                icon: ShoppingCart,
+                status: "Confirmed",
+              },
+              {
+                label: "Sapphire Stock Replenished",
+                time: "1 hour ago",
+                icon: Package,
+                status: "Inbound",
+              },
+              {
+                label: "Astrology Consultation Booked",
+                time: "3 hours ago",
+                icon: Layers,
+                status: "Complete",
+              },
+              {
+                label: "Stock Alert: Emerald Rings",
+                time: "1 day ago",
+                icon: Activity,
+                status: "Alert",
+              },
+            ].map((activity, i) => (
+              <div
+                key={i}
+                className="flex gap-5 group cursor-pointer p-4 rounded-sm border border-transparent hover:border-white/5 hover:bg-white/5 transition-all relative overflow-hidden"
+              >
+                <div className="h-12 w-12 flex-shrink-0 flex items-center justify-center rounded-sm bg-olive/10 border border-olive/30 text-olive-lt group-hover:bg-olive group-hover:text-white transition-all ring-1 ring-gold/5">
+                  <activity.icon size={20} />
+                </div>
+                <div className="flex flex-col justify-center overflow-hidden space-y-1.5">
+                  <p className="text-xs font-black text-white uppercase tracking-tight truncate group-hover:text-gold transition-colors">
+                    {activity.label}
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[9px] font-bold text-white/20 uppercase tracking-widest italic">
+                      {activity.time}
+                    </span>
+                    <span
+                      className={cn(
+                        "text-[9px] font-black px-2 py-0.5 rounded-full border tracking-[0.2em] uppercase",
+                        activity.status === "Alert"
+                          ? "bg-red/10 text-red border-red/20"
+                          : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+                      )}
+                    >
+                      {activity.status}
+                    </span>
                   </div>
-                  <div className="p-8">
-                     <h3 className="text-2xl font-playfair font-medium text-luxury-black mb-2 truncate">{p.name}</h3>
-                     <p className="text-[11px] font-black uppercase tracking-[0.2em] text-luxury-gold mb-6">Origin: Vedic Vault</p>
-                     <div className="flex items-center justify-between border-t border-black/5 pt-6">
-                        <span className="text-xl font-bold font-poppins">{p.pricing?.price || p.price || "N/A"}</span>
-                        <button className="p-3 bg-luxury-black text-white hover:bg-luxury-gold hover:text-black transition-all rounded-xl">
-                           <ArrowUpRight size={18} />
-                        </button>
-                     </div>
-                  </div>
-               </div>
+                </div>
+              </div>
             ))}
-         </div>
+          </div>
+
+          <div className="p-8 rounded-sm bg-ink/60 border border-white/5 space-y-4 shadow-inner relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-16 h-16 bg-gold/5 -rotate-45 translate-x-8 -translate-y-8" />
+            <div className="flex items-center gap-3">
+              <Shield className="text-gold" size={18} />
+              <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-white italic">
+                System Security // Active
+              </h4>
+            </div>
+            <p className="text-[10px] text-white/30 leading-relaxed italic font-medium uppercase tracking-wider">
+              All transactions are securely synchronized. System data protection active.
+            </p>
+          </div>
+        </div>
       </section>
     </div>
   );

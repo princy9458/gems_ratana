@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState, Suspense } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
 import {
   fetchProducts,
@@ -21,338 +20,333 @@ import {
   Plus,
   Edit,
   Trash,
+  Eye,
   ChevronDown,
   ChevronUp,
   Upload,
   Image as ImageIcon,
+  Package,
+  Search,
+  X,
+  LayoutGrid,
+  Rows,
+  ChevronRight,
+  MoreVertical,
+  Filter,
+  Download,
+  Target,
+  Zap,
+  ShieldAlert,
+  Database,
+  Gem
 } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ProductStudio } from "@/components/admin/products/ProductStudio";
-import { ImportModal } from "@/components/admin/ImportModal";
-import { useSelector } from "react-redux";
+import { cn } from "@/lib/utils";
 import { RootState } from "@/lib/store/store";
+import { ImportModal } from "@/components/admin/ImportModal";
 
 function ProductsPageContent() {
   const dispatch = useAppDispatch();
-  const searchParams = useSearchParams();
   const router = useRouter();
-  const { allProducts: products, loading } = useSelector(
+
+  const { allProducts: products, loading } = useAppSelector(
     (state: RootState) => state.adminProducts,
   );
 
-  const [expandedRow, setExpandedRow] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const [showImportModal, setShowImportModal] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-
-  const action = searchParams.get("action");
-  const editId = searchParams.get("id");
-  // const isStudioMode = action === "new" || !!editId;
-
-  const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`Are you sure you want to delete "${name}"?`)) return;
-
-    setDeletingId(id);
-    const toastId = toast.loading(`Deleting ${name}...`);
-
-    try {
-      const resultAction = await dispatch(deleteProduct(id));
-      if (deleteProduct.fulfilled.match(resultAction)) {
-        toast.success(`${name} deleted successfully`, { id: toastId });
-        dispatch(fetchProducts());
-      } else {
-        toast.error(
-          `Delete failed: ${resultAction.payload || "Unknown error"}`,
-          { id: toastId },
-        );
-      }
-    } catch (err) {
-      toast.error("Network error. Please try again.", { id: toastId });
-    } finally {
-      setDeletingId(null);
-    }
-  };
+  const [importing, setImporting] = useState(false);
 
   const handleImport = async (data: any[]) => {
-    const resultAction = await dispatch(bulkImportProducts(data));
-    if (bulkImportProducts.fulfilled.match(resultAction)) {
-      return resultAction.payload;
-    } else {
-      throw new Error((resultAction.payload as any) || "Import failed");
+    setImporting(true);
+    try {
+      const resultAction = await dispatch(bulkImportProducts(data));
+      if (bulkImportProducts.fulfilled.match(resultAction)) {
+        // dispatch(fetchProducts());
+        return resultAction.payload;
+      } else {
+        throw new Error(
+          (resultAction.payload as string) || "Bulk import protocol failed.",
+        );
+      }
+    } finally {
+      setImporting(false);
     }
   };
 
   const productSampleData = [
     {
-      name: "Modern Leather Sofa",
-      sku: "SOFA-LR-001",
-      price: 1299.99,
-      status: "active",
+      name: "Natural Blue Sapphire (Neelam)",
+      sku: "GEM-SAP-001",
       type: "physical",
-      description: "Premium Italian leather sofa with oak legs.",
-      categories: ["furniture", "living-room"],
+      price: 1499.99,
+      status: "active",
+      description: "Certified Ceylon Blue Sapphire for Vedic astrology.",
+      categories: ["precious-gems", "sapphire"],
+      images: [
+        "https://images.unsplash.com/photo-1599557456722-1b15d2fbdd21?auto=format&fit=crop&q=80&w=800",
+      ],
+      options: [
+        {
+          label: "Carat",
+          values: ["3.5", "5.0", "7.0"],
+          useForVariants: true,
+        },
+        { label: "Origin", values: ["Ceylon", "Kashmir"], useForVariants: true },
+      ],
       variants: [
         {
-          sku: "SOFA-LR-001-BROWN",
-          title: "Cognac Brown",
-          price: 1299.99,
+          sku: "GEM-SAP-001-35-CEY",
+          title: "3.5 Carat / Ceylon",
+          price: 1499.99,
           stock: 5,
-        },
-        {
-          sku: "SOFA-LR-001-BLACK",
-          title: "Noir Black",
-          price: 1349.99,
-          stock: 3,
+          optionValues: { Carat: "3.5", Origin: "Ceylon" },
         },
       ],
     },
   ];
+
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`Confirm removal of product: "${name}"?`)) return;
+    const toastId = toast.loading(`Removing ${name}...`);
+    try {
+      const resultAction = await dispatch(deleteProduct(id));
+      if (deleteProduct.fulfilled.match(resultAction)) {
+        toast.success(`Product ${name} removed.`, { id: toastId });
+        dispatch(fetchProducts());
+      } else {
+        toast.error("Removal denied by system constraints.", {
+          id: toastId,
+        });
+      }
+    } catch (err) {
+      toast.error("Comms failure.", { id: toastId });
+    }
+  };
+
+  const filteredProducts = products.filter(
+    (p) =>
+      p.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.sku?.toLowerCase().includes(searchQuery.toLowerCase()),
+  );
+
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 font-display">
-            Products
+    <div className="flex flex-col space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
+      {/* Header Section */}
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 border-b border-white/5 pb-8">
+        <div className="space-y-2">
+          <h1 className="text-4xl font-head font-black text-white uppercase tracking-tighter leading-none">
+            Products{" "}
           </h1>
-          <p className="text-sm text-slate-500">
-            Manage your product catalog and inventory details.
+          <p className="text-sm text-white/40 font-medium italic flex items-center gap-2 uppercase tracking-widest text-[10px]">
+            <Target size={12} className="text-gold" /> Cataloging product inventory and stock levels.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            className="rounded-xl border-slate-200 text-slate-600 hover:bg-slate-50 gap-2 font-bold px-5"
+        <div className="flex items-center gap-4">
+          <button
+            className="h-12 px-6 bg-white/5 border border-white/10 text-white/40 font-head font-bold text-xs uppercase tracking-widest rounded-sm hover:text-white hover:border-gold/30 transition-all flex items-center gap-2 group"
             onClick={() => setShowImportModal(true)}
+            disabled={importing}
           >
-            <Upload className="h-4 w-4" /> Import JSON
-          </Button>
-
+            <Upload
+              size={16}
+              className="group-hover:-translate-y-0.5 transition-transform"
+            />{" "}
+            Import Batch
+          </button>
           <ImportModal
             isOpen={showImportModal}
             onClose={() => setShowImportModal(false)}
             onImport={handleImport}
             sampleData={productSampleData}
-            title="Import Products"
-            description="Upload a JSON file containing product records. Existing SKUs will be skipped."
-            fileName="products"
+            title="Bulk Inventory Import"
+            description="Upload JSON batch files to synchronize product inventory with the system."
+            fileName="gems_ratna_products"
           />
-          <Button
-            className="rounded-xl bg-slate-900 text-white hover:bg-slate-800 gap-2 shadow-lg shadow-slate-200"
-            onClick={() => router.push("products/new")}
-          >
-            <Plus className="h-4 w-4" /> Add Product
-          </Button>
+          <Link href="/admin/products/new">
+            <button className="h-12 px-8 bg-olive text-white hover:bg-olive-lt font-head font-bold text-xs uppercase tracking-widest rounded-sm transition-all active:scale-95 flex items-center gap-3 shadow-2xl shadow-olive/20">
+              <Plus size={18} /> Add Product
+            </button>
+          </Link>
         </div>
       </div>
 
-      <div className="rounded-3xl border border-slate-100 bg-white overflow-hidden shadow-sm shadow-slate-200/50">
+      {/* Toolbar Section */}
+      <div className="flex flex-col lg:flex-row items-center gap-6 bg-charcoal p-5 rounded-sm border border-white/5 shadow-2xl shadow-black/60">
+        <div className="relative flex-1 group w-full">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-white/20 group-focus-within:text-gold transition-colors" />
+          <input
+            placeholder="SEARCH PRODUCT BY NAME OR SKU..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-12 pr-4 h-12 bg-ink border border-white/10 rounded-sm text-xs font-bold uppercase tracking-widest text-white placeholder:text-white/20 focus:border-gold outline-none transition-all"
+          />
+        </div>
+        <div className="flex items-center gap-3 w-full lg:w-auto">
+          <button className="h-12 px-6 flex-1 lg:flex-none border border-white/10 text-white/40 hover:text-white hover:border-gold/30 font-head font-bold text-xs uppercase tracking-widest rounded-sm transition-all flex items-center justify-center gap-2 italic">
+            <Filter size={16} /> Product Filters
+          </button>
+          <button className="h-12 px-6 border border-white/10 text-white/40 hover:text-white hover:border-gold/30 font-head font-bold text-xs uppercase tracking-widest rounded-sm transition-all flex items-center justify-center gap-2 italic">
+            <Download size={16} /> Export Ledger
+          </button>
+        </div>
+      </div>
+
+      {/* Table Container */}
+      <div className="bg-charcoal border border-white/5 rounded-sm overflow-hidden shadow-2xl shadow-black/80">
         <Table>
-          <TableHeader className="bg-slate-50/50">
-            <TableRow className="hover:bg-transparent border-slate-100">
-              <TableHead className="font-bold text-slate-500 uppercase tracking-wider text-[10px]">
-                Product
+          <TableHeader className="bg-ink/60 border-b border-white/5">
+            <TableRow className="hover:bg-transparent border-white/5 h-16">
+              <TableHead className="text-[10px] font-black uppercase tracking-[0.25em] text-white/20 px-8">
+                Product Details
               </TableHead>
-              <TableHead className="font-bold text-slate-500 uppercase tracking-wider text-[10px]">
-                SKU
+              <TableHead className="text-[10px] font-black uppercase tracking-[0.25em] text-white/20">
+                SKU / Serial
               </TableHead>
-              <TableHead className="font-bold text-slate-500 uppercase tracking-wider text-[10px]">
-                Status
+              <TableHead className="text-[10px] font-black uppercase tracking-[0.25em] text-white/20">
+                Availability
               </TableHead>
-              <TableHead className="font-bold text-slate-500 uppercase tracking-wider text-[10px]">
-                Variants
+              <TableHead className="text-[10px] font-black uppercase tracking-[0.25em] text-white/20">
+                Configuration
               </TableHead>
-              <TableHead className="text-right font-bold text-slate-500 uppercase tracking-wider text-[10px]">
-                Actions
+              <TableHead className="text-[10px] font-black uppercase tracking-[0.25em] text-white/20 text-right px-8">
+                Management
               </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center h-48">
-                  <div className="flex flex-col items-center gap-3">
-                    <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-slate-900" />
-                    <span className="text-xs text-slate-400 font-bold uppercase tracking-widest">
-                      Hydrating Catalog...
+              <TableRow className="border-none hover:bg-transparent">
+                <TableCell colSpan={5} className="h-64 text-center">
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="h-8 w-8 border-2 border-white/5 border-t-gold rounded-full animate-spin shadow-lg shadow-gold/20" />
+                    <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/20 italic animate-pulse">
+                      Syncing Inventory Hub...
                     </span>
                   </div>
                 </TableCell>
               </TableRow>
-            ) : products.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={5}
-                  className="text-center h-48 text-slate-400"
-                >
-                  No products found in your inventory.
+            ) : filteredProducts.length === 0 ? (
+              <TableRow className="border-none hover:bg-transparent">
+                <TableCell colSpan={5} className="h-96 text-center p-12">
+                  <div className="flex flex-col items-center gap-6 text-white/10 italic">
+                    <div className="h-24 w-24 rounded-full border border-white/5 flex items-center justify-center bg-white/[0.02] shadow-inner">
+                      <Gem
+                        size={48}
+                        strokeWidth={1}
+                        className="opacity-40"
+                      />
+                    </div>
+                    <span className="text-sm font-bold uppercase tracking-[0.3em] leading-relaxed">
+                      No products found in inventory.
+                    </span>
+                  </div>
                 </TableCell>
               </TableRow>
             ) : (
-              products.map((prod) => (
-                <React.Fragment key={prod._id}>
-                  <TableRow
-                    className={`hover:bg-slate-50/50 border-slate-50 transition-colors ${prod._id && expandedRow === prod._id ? "bg-slate-50/30" : ""}`}
-                  >
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="relative h-12 w-12 rounded-xl overflow-hidden border border-slate-100 bg-slate-50 flex-shrink-0">
-                          {prod.primaryImageId &&
-                          prod.gallery?.find(
-                            (g: any) => g.id === prod.primaryImageId,
-                          ) ? (
-                            <img
-                              src={
-                                prod.gallery.find(
-                                  (g: any) => g.id === prod.primaryImageId,
-                                )
-                                  ? prod.gallery.find(
-                                      (g: any) => g.id === prod.primaryImageId,
-                                    )?.url
-                                  : prod.gallery?.[0]?.url
-                              }
-                              alt={prod.name}
-                              className="h-full w-full object-cover"
-                            />
-                          ) : prod.gallery?.[0]?.url ? (
-                            <img
-                              src={prod.gallery[0].url}
-                              alt={prod.name}
-                              className="h-full w-full object-cover"
-                            />
-                          ) : (
-                            <div className="h-full w-full flex items-center justify-center text-slate-300">
-                              <ImageIcon size={20} />
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="font-bold text-slate-700 text-sm">
-                            {prod.name ?? "Unnamed Product"}
-                          </span>
-                          <span className="text-xs text-slate-400 font-medium">
-                            ${prod.pricing?.price || prod.price || "0"}
-                          </span>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-mono text-xs text-slate-500">
-                      {prod.sku}
-                    </TableCell>
-                    <TableCell>
-                      <span
-                        className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${
-                          prod.status === "active"
-                            ? "bg-emerald-100 text-emerald-700"
-                            : "bg-amber-100 text-amber-700"
-                        }`}
-                      >
-                        {prod.status}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 gap-x-2 rounded-lg hover:bg-slate-100 text-slate-500 font-bold text-xs"
-                        onClick={() =>
-                          prod._id &&
-                          setExpandedRow(
-                            expandedRow === prod._id ? null : prod._id,
-                          )
-                        }
-                      >
-                        {prod.variants?.length || 0} Variations
-                        {expandedRow === prod._id ? (
-                          <ChevronUp className="h-3 w-3" />
+              filteredProducts.map((prod) => (
+                <TableRow
+                  key={prod._id}
+                  className="group border-white/5 hover:bg-white/[0.02] transition-all duration-300"
+                >
+                  <TableCell className="px-8 py-6">
+                    <div className="flex items-center gap-6">
+                      <div className="h-16 w-16 rounded-sm overflow-hidden bg-ink border border-white/5 group-hover:border-gold/30 transition-all ring-1 ring-gold/0 group-hover:ring-gold/5">
+                        {prod.gallery && prod.gallery[0] ? (
+                          <img
+                            src={String(prod.gallery[0].url)}
+                            alt={String(prod.gallery[0].alt)}
+                            className="h-full w-full object-cover grayscale-[0.3] group-hover:grayscale-0 transition-all duration-500"
+                          />
                         ) : (
-                          <ChevronDown className="h-3 w-3" />
-                        )}
-                      </Button>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50"
-                          onClick={() =>
-                            router.push(`products/${prod._id}/edit`)
-                          }
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50"
-                          disabled={deletingId === prod._id}
-                          onClick={() =>
-                            prod._id &&
-                            handleDelete(prod._id, prod.name ?? "this product")
-                          }
-                        >
-                          <Trash className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                  {prod._id &&
-                    expandedRow === prod._id &&
-                    prod.variants &&
-                    prod.variants.length > 0 && (
-                      <TableRow className="bg-slate-50/20 hover:bg-slate-50/20">
-                        <TableCell
-                          colSpan={5}
-                          className="p-4 border-b border-slate-50"
-                        >
-                          <div className="rounded-2xl border border-slate-100 bg-white overflow-hidden shadow-sm">
-                            <Table>
-                              <TableHeader className="bg-slate-50/50">
-                                <TableRow className="hover:bg-transparent border-slate-50">
-                                  <TableHead className="text-[9px] font-black uppercase tracking-widest text-slate-400 px-4 py-2">
-                                    Variant
-                                  </TableHead>
-                                  <TableHead className="text-[9px] font-black uppercase tracking-widest text-slate-400 px-4 py-2">
-                                    SKU
-                                  </TableHead>
-                                  <TableHead className="text-[9px] font-black uppercase tracking-widest text-slate-400 px-4 py-2">
-                                    Price
-                                  </TableHead>
-                                  <TableHead className="text-[9px] font-black uppercase tracking-widest text-slate-400 px-4 py-2">
-                                    Stock
-                                  </TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {prod.variants.map((v: any) => (
-                                  <TableRow
-                                    key={v._id}
-                                    className="border-slate-50 hover:bg-slate-50/30"
-                                  >
-                                    <TableCell className="text-[11px] font-bold text-slate-600 px-4 py-2">
-                                      {v.title}
-                                    </TableCell>
-                                    <TableCell className="text-[10px] font-mono text-slate-400 px-4 py-2">
-                                      {v.sku}
-                                    </TableCell>
-                                    <TableCell className="text-[11px] font-bold text-slate-700 px-4 py-2">
-                                      ${v.price}
-                                    </TableCell>
-                                    <TableCell className="px-4 py-2">
-                                      <span
-                                        className={`text-[10px] font-black px-1.5 py-0.5 rounded ${v.stock <= 0 ? "bg-rose-50 text-rose-600" : "bg-slate-100 text-slate-500"}`}
-                                      >
-                                        {v.stock} pcs
-                                      </span>
-                                    </TableCell>
-                                  </TableRow>
-                                ))}
-                              </TableBody>
-                            </Table>
+                          <div className="h-full w-full flex items-center justify-center text-white/10">
+                            <ImageIcon size={22} />
                           </div>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                </React.Fragment>
+                        )}
+                      </div>
+                      <div className="flex flex-col space-y-1.5 overflow-hidden">
+                        <span className="text-sm font-bold text-white uppercase tracking-tight leading-none group-hover:text-gold transition-colors italic truncate">
+                          {prod.name}
+                        </span>
+                        <span className="text-lg font-head font-black text-gold/80 tracking-tighter leading-none">
+                          ${prod.pricing?.price || prod.price || "0"}
+                        </span>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-[9px] font-black text-white/20 px-3 py-1 bg-ink border border-white/5 rounded-sm uppercase tracking-widest italic group-hover:text-gold/40 group-hover:border-gold/20 transition-all">
+                      {prod.sku || "UNASSIGNED"}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <div
+                      className={cn(
+                        "inline-flex items-center gap-2.5 px-4 py-1.5 rounded-sm text-[9px] font-black uppercase tracking-widest border italic",
+                        prod.status === "active"
+                          ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                          : "bg-white/5 text-white/30 border-white/10",
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          "h-1.5 w-1.5 rounded-full ring-2 ring-white/0 group-hover:ring-current/20",
+                          prod.status === "active"
+                            ? "bg-emerald-400"
+                            : "bg-white/30",
+                        )}
+                      />
+                      {prod.status}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-3 text-white/30 italic group-hover:text-gold/50 transition-colors">
+                      <Zap size={14} className="text-gold/50" />
+                      <span className="text-[10px] font-black uppercase tracking-widest">
+                        {prod.variants?.length || 0} Variations
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right px-8">
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        className="h-10 w-10 rounded-sm border border-white/5 bg-white/[0.03] text-white/20 hover:text-gold hover:border-gold/30 hover:bg-gold/10 transition-all flex items-center justify-center group/btn shadow-xl active:scale-95"
+                        onClick={() =>
+                          router.push(`/admin/products/${prod._id}/edit`)
+                        }
+                        title="Modify Product"
+                      >
+                        <Edit
+                          size={18}
+                          className="group-hover/btn:scale-110 transition-transform"
+                        />
+                      </button>
+                      <button
+                        className="h-10 w-10 rounded-sm border border-white/5 bg-white/[0.03] text-white/20 hover:text-red hover:border-red/30 hover:bg-red/10 transition-all flex items-center justify-center group/btn shadow-xl active:scale-95"
+                        onClick={() =>
+                          handleDelete(String(prod._id), prod.name)
+                        }
+                        title="Remove Product"
+                      >
+                        <Trash
+                          size={18}
+                          className="group-hover/btn:scale-110 transition-transform"
+                        />
+                      </button>
+                      <button
+                        className="h-10 w-10 rounded-sm border border-white/5 bg-white/[0.03] text-white/20 hover:text-white hover:border-gold/30 hover:bg-gold/10 transition-all flex items-center justify-center group/btn shadow-xl"
+                        title="Diagnostics"
+                      >
+                        <MoreVertical
+                          size={18}
+                          className="group-hover/btn:scale-110 transition-transform"
+                        />
+                      </button>
+                    </div>
+                  </TableCell>
+                </TableRow>
               ))
             )}
           </TableBody>
@@ -364,7 +358,16 @@ function ProductsPageContent() {
 
 export default function ProductsPage() {
   return (
-    <Suspense fallback={<div>Loading Page...</div>}>
+    <Suspense
+      fallback={
+        <div className="h-[60vh] flex flex-col items-center justify-center gap-4">
+          <div className="h-8 w-8 border-2 border-white/5 border-t-gold rounded-full animate-spin shadow-lg shadow-gold/20" />
+          <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/20 italic">
+            Initializing Product Hub...
+          </span>
+        </div>
+      }
+    >
       <ProductsPageContent />
     </Suspense>
   );

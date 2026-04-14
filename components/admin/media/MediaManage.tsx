@@ -219,8 +219,8 @@ export const MediaUploader = ({
                 <ImageIcon size={28} />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-white tracking-tight">Gem Media Vault</h1>
-                <p className="text-white/40 text-[10px] uppercase font-black tracking-[0.3em] mt-1">Exclusive Spiritual Brand Assets</p>
+                <h1 className="text-3xl font-bold text-white tracking-tight">Media Library</h1>
+                <p className="text-white/40 text-[10px] uppercase font-black tracking-[0.3em] mt-1">Premium Brand Assets</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -233,7 +233,7 @@ export const MediaUploader = ({
                 className="bg-amber-500 hover:bg-amber-400 text-black px-8 py-3.5 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all flex items-center gap-3 shadow-xl shadow-amber-500/10"
               >
                 <Plus size={16} />
-                Ingest New Media
+                Upload New Media
               </button>
             </div>
           </div>
@@ -245,7 +245,7 @@ export const MediaUploader = ({
             <div className="bg-[#111] border border-white/5 p-6 rounded-[2rem] shadow-2xl">
               <h3 className="text-[10px] font-black uppercase tracking-[0.25em] text-white/30 mb-6 flex items-center gap-3">
                 <FolderOpen size={14} className="text-amber-400" />
-                Folder Archives
+                Media Folders
               </h3>
               <div className="space-y-2">
                 <button
@@ -257,7 +257,7 @@ export const MediaUploader = ({
                       : "text-white/40 hover:text-white border-transparent hover:bg-white/5"
                   )}
                 >
-                  Universal View
+                  All Media
                 </button>
                 {PREDEFINED_FOLDERS.map(folder => (
                   <button
@@ -302,7 +302,7 @@ export const MediaUploader = ({
                 <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-amber-400 transition-colors" size={20} />
                 <input
                   type="text"
-                  placeholder="Query asset by filename or descriptor..."
+                  placeholder="Search media by filename or description..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full bg-[#111] border border-white/5 pl-14 pr-6 py-4 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 transition-all font-medium"
@@ -320,7 +320,7 @@ export const MediaUploader = ({
                         : "text-white/20 hover:text-white"
                     )}
                   >
-                    {tab === "library" ? "Vault" : "Ingest"}
+                    {tab === "library" ? "Library" : "Upload"}
                   </button>
                 ))}
               </div>
@@ -346,8 +346,8 @@ export const MediaUploader = ({
                       <div className="w-20 h-20 mx-auto mb-6 bg-amber-400/10 rounded-[1.5rem] flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg border border-amber-400/5">
                         <Upload className="text-amber-400" size={32} />
                       </div>
-                      <p className="text-xl font-bold text-white mb-2">Surrender assets to the vault</p>
-                      <p className="text-sm text-white/30 font-medium">Drag-and-drop or select catalog files</p>
+                      <p className="text-xl font-bold text-white mb-2">Upload assets to the library</p>
+                      <p className="text-sm text-white/30 font-medium">Drag-and-drop or select media files</p>
                     </div>
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_#151005,_transparent)] opacity-40 group-hover:opacity-60 transition-opacity" />
                   </div>
@@ -376,7 +376,7 @@ export const MediaUploader = ({
                                 />
                               </div>
                               <div className="space-y-1.5">
-                                <label className="text-[9px] font-black uppercase tracking-widest text-white/20 ml-1">Destination Archive</label>
+                                <label className="text-[9px] font-black uppercase tracking-widest text-white/20 ml-1">Media Folder</label>
                                 <select 
                                   value={file.foldername}
                                   onChange={e => updateFileMetadata(index, "foldername", e.target.value)}
@@ -393,7 +393,7 @@ export const MediaUploader = ({
                         onClick={handleUpload}
                         className="w-full bg-gradient-to-r from-amber-500 to-amber-600 text-black font-black uppercase tracking-[0.25em] py-5 rounded-[1.5rem] transition-all shadow-2xl shadow-amber-500/20 hover:scale-[1.01] active:scale-[0.99] mt-4"
                       >
-                        Ingest {selectedFiles.length} Assets into Vault
+                        Upload {selectedFiles.length} Assets to Library
                       </button>
                     </div>
                   )}
@@ -403,7 +403,7 @@ export const MediaUploader = ({
                   {isLoading ? (
                      <div className="col-span-full py-20 text-center flex flex-col items-center gap-4">
                         <div className="h-10 w-10 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
-                        <p className="text-[10px] font-black uppercase tracking-widest text-white/30">Decrypting Archives...</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-white/30">Loading Media Library...</p>
                      </div>
                   ) : (
                     <AnimatePresence>
@@ -457,7 +457,7 @@ export const MediaUploader = ({
                   {filteredMedia.length === 0 && !isLoading && (
                     <div className="col-span-full py-32 text-center opacity-20">
                       <ImageIcon size={64} className="mx-auto mb-6" />
-                      <p className="text-sm font-black uppercase tracking-[0.4em]">Vault segment is empty</p>
+                      <p className="text-sm font-black uppercase tracking-[0.4em]">The library is empty</p>
                     </div>
                   )}
                 </div>
@@ -484,9 +484,9 @@ export const MediaUploader = ({
             >
               <div className="mb-6 flex items-start justify-between gap-4">
                 <div>
-                  <h2 className="text-2xl font-bold tracking-tight text-white">Ingest New Media</h2>
+                  <h2 className="text-2xl font-bold tracking-tight text-white">Upload New Media</h2>
                   <p className="mt-1 text-[10px] font-black uppercase tracking-[0.3em] text-white/35">
-                    Open the upload interface and push assets into the vault
+                    Open the upload interface and add assets to the library
                   </p>
                 </div>
                 <button
@@ -631,7 +631,7 @@ export const MediaUploader = ({
                   </div>
                   <div className="p-12 space-y-8 flex flex-col justify-center">
                     <div>
-                      <span className="text-amber-500 text-[10px] font-black uppercase tracking-[0.4em] mb-2 block">{viewingMedia.foldername} Archive</span>
+                      <span className="text-amber-500 text-[10px] font-black uppercase tracking-[0.4em] mb-2 block">{viewingMedia.foldername} Library</span>
                       <h3 className="text-3xl font-bold tracking-tight text-white">{viewingMedia.filename}</h3>
                     </div>
 
@@ -677,7 +677,7 @@ export const MediaUploader = ({
                           className="flex-1 bg-white/5 hover:bg-white/10 text-white font-black uppercase tracking-widest text-[10px] py-5 rounded-2xl transition-all flex items-center justify-center gap-3 border border-white/10"
                         >
                           <Copy size={18} />
-                          Retrieve Endpoint URL
+                          Copy Media URL
                         </button>
                       )}
                       <button 

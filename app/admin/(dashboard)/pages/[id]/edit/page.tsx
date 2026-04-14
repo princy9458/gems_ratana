@@ -59,7 +59,7 @@ export default function EditPage() {
 
     setSaving(true);
     console.log("Saving:", pageData);
-    const toastId = toast.loading("Invoking Sacred Update...");
+    const toastId = toast.loading("Updating Page Content...");
 
     try {
       const response = await fetch(`/api/pages/${pageId}`, {
@@ -96,8 +96,8 @@ export default function EditPage() {
       <div className="flex flex-col items-center justify-center min-h-[500px] gap-6 text-white/50">
         <Loader2 className="h-10 w-10 animate-spin text-amber-400" />
         <div className="text-center">
-           <p className="text-[10px] font-black uppercase tracking-[0.4em] mb-2">Syncing with Cosmos</p>
-           <p className="text-sm italic">Gathering page data from the sacred vault...</p>
+           <p className="text-[10px] font-black uppercase tracking-[0.4em] mb-2">Synchronizing Data</p>
+           <p className="text-sm italic">Gathering page data from the library...</p>
         </div>
       </div>
     );
@@ -119,7 +119,7 @@ export default function EditPage() {
           onClick={() => router.push("/admin/pages")}
           className="bg-white text-black font-black uppercase tracking-widest text-[10px] h-12 px-10 rounded-xl"
         >
-          Return to Registry
+          Return to Pages List
         </Button>
       </div>
     );

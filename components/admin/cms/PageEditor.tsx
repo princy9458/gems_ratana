@@ -356,7 +356,7 @@ export const PageEditor: React.FC<PageEditorProps> = ({
                             value={page.title} 
                             onChange={e => setPage({...page, title: e.target.value})}
                             className="h-16 rounded-2xl border-white/10 bg-white/5 text-xl font-bold px-6 focus:ring-amber-500/40"
-                            placeholder="e.g. Our Sacred Collection"
+                            placeholder="e.g. Our Signature Collection"
                           />
                        </div>
                        <div className="space-y-3">
@@ -367,7 +367,7 @@ export const PageEditor: React.FC<PageEditorProps> = ({
                               value={page.slug} 
                               onChange={e => setPage({...page, slug: e.target.value.toLowerCase().replace(/\s+/g, '-')})}
                               className="h-16 rounded-2xl border-white/10 bg-white/5 pl-10 text-lg font-mono focus:ring-amber-500/40"
-                              placeholder="sacred-collection"
+                              placeholder="signature-collection"
                             />
                           </div>
                        </div>
@@ -485,7 +485,7 @@ export const PageEditor: React.FC<PageEditorProps> = ({
                                 value={page.seo.keywords} 
                                 onChange={e => updateSeo({ keywords: e.target.value })}
                                 className="h-14 rounded-2xl border-white/10 bg-white/5"
-                                placeholder="gems, spiritual, luxury (comma separated)"
+                                placeholder="gemstones, collections, luxury"
                               />
                            </div>
                         </div>
@@ -1718,7 +1718,7 @@ const BlogEditor = ({ content, onChange }: { content: any; onChange: (u: any) =>
            value={content.category || ''} 
            onChange={e => onChange({ category: e.target.value })} 
            className="h-14 bg-black/40 border-white/10 rounded-2xl px-4" 
-           placeholder="e.g. spiritual, energy-healing"
+           placeholder="e.g. focus, mindfulness"
          />
       </div>
     </div>
