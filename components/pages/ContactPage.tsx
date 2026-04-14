@@ -6,11 +6,15 @@ import {
   Mail,
   Phone,
   Clock,
+  MapPin,
   Instagram,
   Facebook,
   Youtube,
   Send,
   CheckCircle2,
+  Gem,
+  Sparkles,
+  ShieldCheck,
 } from "lucide-react";
 import { useSelector } from "react-redux";
 import { RootState } from "@/lib/store/store";
@@ -63,7 +67,7 @@ const ContactPage = () => {
               Contact Gems Ratna
             </h1>
             <p className="text-lg md:text-xl text-[#666] font-light italic tracking-wide">
-              We are here to guide you in your gemstone journey
+              Speak with our team for gemstone guidance, custom jewellery requests, certification queries, and purchase support.
             </p>
             <div className="w-24 h-px bg-[#C5A059] mx-auto mt-8 opacity-40" />
           </motion.div>
@@ -82,7 +86,9 @@ const ContactPage = () => {
             >
               <div>
                 <h3 className="text-xs font-bold uppercase tracking-[0.3em] text-[#C5A059] mb-8">Get In Touch</h3>
-                
+                <p className="text-base text-[#666] font-light leading-8 mb-10">
+                  Whether you are searching for a Vedic recommendation, an engagement ring, a certified natural stone, or a gifting consultation, our Gems Ratna advisors are ready to help.
+                </p>
                 <div className="space-y-10">
                   <div className="flex items-start gap-6 group">
                     <div className="w-12 h-12 rounded-full border border-[#C5A059]/20 flex items-center justify-center text-[#C5A059] group-hover:bg-[#C5A059] group-hover:text-white transition-all duration-500">
@@ -102,11 +108,61 @@ const ContactPage = () => {
                     </div>
                     <div>
                       <p className="text-[10px] font-bold uppercase tracking-widest text-[#999] mb-1">Call Us</p>
-                      <a href="tel:+91XXXXXXXXXX" className="text-xl font-light hover:text-[#C5A059] transition-colors duration-300">
-                        +91 XXXXX XXXXX
+                      <a href="tel:+919810159604" className="text-xl font-light hover:text-[#C5A059] transition-colors duration-300">
+                        +91 98101 59604
                       </a>
                     </div>
                   </div>
+
+                  <div className="flex items-start gap-6 group">
+                    <div className="w-12 h-12 rounded-full border border-[#C5A059]/20 flex items-center justify-center text-[#C5A059] group-hover:bg-[#C5A059] group-hover:text-white transition-all duration-500">
+                      <MapPin size={18} strokeWidth={1.5} />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-[#999] mb-1">Studio & Assistance</p>
+                      <p className="text-xl font-light text-[#1A1A1A]">
+                        Online Consultation Available Across India
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-xs font-bold uppercase tracking-[0.3em] text-[#C5A059] mb-8">What We Help With</h3>
+                <div className="space-y-5">
+                  {[
+                    {
+                      icon: Gem,
+                      title: "Gem Recommendation",
+                      text: "Personalized suggestions for ruby, panna, neelam, pukhraj, moti and other natural stones.",
+                    },
+                    {
+                      icon: ShieldCheck,
+                      title: "Certification & Authenticity",
+                      text: "Guidance on lab certificates, origin, clarity, treatment disclosures, and stone quality.",
+                    },
+                    {
+                      icon: Sparkles,
+                      title: "Custom Orders & Ritual Guidance",
+                      text: "Support for ring customization, gifting, energization rituals, and gemstone wearing advice.",
+                    },
+                  ].map((item) => (
+                    <div
+                      key={item.title}
+                      className="rounded-[1.75rem] border border-[#1A1A1A]/8 bg-white/70 p-6 shadow-[0_15px_40px_rgba(0,0,0,0.03)]"
+                    >
+                      <div className="flex items-start gap-4">
+                        <div className="mt-1 flex h-11 w-11 items-center justify-center rounded-full bg-[#C5A059]/10 text-[#C5A059]">
+                          <item.icon size={18} strokeWidth={1.8} />
+                        </div>
+                        <div>
+                          <h4 className="text-base font-semibold text-[#1A1A1A] mb-2">{item.title}</h4>
+                          <p className="text-sm leading-7 text-[#666] font-light">{item.text}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -119,11 +175,11 @@ const ContactPage = () => {
                     </div>
                     <div>
                       <div className="mb-4">
-                        <p className="text-base font-medium text-[#1A1A1A]">General Assistance</p>
-                        <p className="text-sm text-[#666] font-light">Available 24x7</p>
+                        <p className="text-base font-medium text-[#1A1A1A]">Gem Enquiry Support</p>
+                        <p className="text-sm text-[#666] font-light">Available every day for online requests</p>
                       </div>
                       <div>
-                        <p className="text-base font-medium text-[#1A1A1A]">Client Support</p>
+                        <p className="text-base font-medium text-[#1A1A1A]">Consultation Hours</p>
                         <p className="text-sm text-[#666] font-light">9:00 AM to 7:30 PM IST</p>
                       </div>
                     </div>
@@ -169,7 +225,7 @@ const ContactPage = () => {
                   </div>
                   <h3 className="text-3xl font-heading mb-4">Message Sent</h3>
                   <p className="text-[#666] font-light mb-10 max-w-sm mx-auto">
-                    Thank you for reaching out. Our experts will connect with you shortly to guide you.
+                    Thank you for reaching out. Our Gems Ratna team will connect with you shortly with the right guidance.
                   </p>
                   <button 
                     onClick={() => setIsSubmitted(false)}
@@ -223,7 +279,7 @@ const ContactPage = () => {
                         name="subject" 
                         value={formData.subject} 
                         onChange={handleChange}
-                        placeholder="How can we help you?"
+                        placeholder="Gem recommendation, custom order, certification..."
                         className="w-full bg-transparent border-b border-[#1A1A1A]/10 py-3 px-1 outline-none focus:border-[#C5A059] transition-all font-light text-lg placeholder:text-black/10" 
                       />
                     </div>
@@ -231,15 +287,16 @@ const ContactPage = () => {
 
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#999] ml-1">Your Message</label>
-                    <textarea 
-                      required 
-                      name="message" 
+                      <textarea 
+                        required 
+                        name="message" 
                       value={formData.message} 
                       onChange={handleChange}
-                      rows={4} 
-                      className="w-full bg-transparent border-b border-[#1A1A1A]/10 py-3 px-1 outline-none focus:border-[#C5A059] transition-all font-light text-lg resize-none placeholder:text-black/5" 
-                    />
-                  </div>
+                        rows={4} 
+                        placeholder="Tell us which gemstone, budget, occasion, zodiac or requirement you want help with."
+                        className="w-full bg-transparent border-b border-[#1A1A1A]/10 py-3 px-1 outline-none focus:border-[#C5A059] transition-all font-light text-lg resize-none placeholder:text-black/5" 
+                      />
+                    </div>
 
                   <button 
                     type="submit" 

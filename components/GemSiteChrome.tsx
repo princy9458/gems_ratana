@@ -535,11 +535,10 @@ export default function GemSiteChrome({
   const { pathname } = useLocation();
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem("theme");
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    const nextTheme = savedTheme || (prefersDark ? "dark" : "light");
+    const nextTheme = "light";
     setTheme(nextTheme);
     document.documentElement.setAttribute("data-theme", nextTheme);
+    localStorage.setItem("theme", nextTheme);
   }, []);
 
   useEffect(() => {

@@ -4,15 +4,27 @@ import { getPageModel } from "@/models";
 import { ObjectId } from "mongodb";
 import { normalizePage } from "@/lib/store/pages/pageHelpers";
 
-// GET a single page by ID
+/**
+ * Enhanced route to handle both MongoDB ObjectIDs and Slugs
+ */
+async function getQuery(slugOrId: string) {
+  if (ObjectId.isValid(slugOrId)) {
+    return { _id: new ObjectId(slugOrId) };
+  }
+  return { slug: slugOrId };
+}
+
+// GET a single page by slug or ID
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ slugOrId: string }> },
 ) {
   try {
-    const { id } = await params;
+    const { slugOrId } = await params;
     const PageModel = await getPageModel();
-    const page = await PageModel.findOne({ _id: new ObjectId(id) });
+    const query = await getQuery(slugOrId);
+    
+    const page = await PageModel.findOne(query);
 
     if (!page) {
       return NextResponse.json(
@@ -34,28 +46,33 @@ export async function GET(
 // PUT update an existing page
 export async function PUT(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ slugOrId: string }> },
 ) {
   try {
-    const { id } = await params;
+    const { slugOrId } = await params;
     const body = await req.json();
     const PageModel = await getPageModel();
-    console.log("PUT /api/pages/[id] body:", body);
+    
+    // We strictly use ID for updates if possible to ensure we're hitting the right record
+    const query = await getQuery(slugOrId);
+    const existingTarget = await PageModel.findOne(query);
 
-    if (!ObjectId.isValid(id)) {
+    if (!existingTarget) {
       return NextResponse.json(
-        { success: false, message: "Invalid page ID" },
-        { status: 400 },
+        { success: false, message: "Page not found for update" },
+        { status: 404 },
       );
     }
 
+    const targetId = existingTarget._id;
+
     // Check slug uniqueness if it's being updated
-    if (body.slug) {
-      const existingPage = await PageModel.findOne({
+    if (body.slug && body.slug !== existingTarget.slug) {
+      const slugConflict = await PageModel.findOne({
         slug: body.slug,
-        _id: { $ne: new ObjectId(id) },
+        _id: { $ne: targetId },
       });
-      if (existingPage) {
+      if (slugConflict) {
         return NextResponse.json(
           { success: false, message: "A page with this slug already exists" },
           { status: 400 },
@@ -81,14 +98,9 @@ export async function PUT(
     updateData.updatedAt = new Date();
 
     const result = await PageModel.updateOne(
-      { _id: new ObjectId(id) },
+      { _id: targetId },
       { $set: updateData },
     );
-
-    console.log("UPDATE RESULT:", {
-      matchedCount: result.matchedCount,
-      modifiedCount: result.modifiedCount,
-    });
 
     if (result.matchedCount === 0) {
       return NextResponse.json(
@@ -97,12 +109,11 @@ export async function PUT(
       );
     }
 
-    const updatedPage = await PageModel.findOne({ _id: new ObjectId(id) });
-    console.log("UPDATED PAGE:", updatedPage);
+    const updatedPage = await PageModel.findOne({ _id: targetId });
 
     if (!updatedPage) {
       return NextResponse.json(
-        { success: false, message: "Page not found" },
+        { success: false, message: "Page not found after update" },
         { status: 404 },
       );
     }
@@ -127,16 +138,27 @@ export async function PUT(
 // DELETE a page
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ slugOrId: string }> },
 ) {
   try {
-    const { id } = await params;
+    const { slugOrId } = await params;
     const PageModel = await getPageModel();
-    const result = await PageModel.deleteOne({ _id: new ObjectId(id) });
+    const query = await getQuery(slugOrId);
+    
+    // For safer deletion, find the record first
+    const existingTarget = await PageModel.findOne(query);
+    if (!existingTarget) {
+      return NextResponse.json(
+        { success: false, message: "Page not found" },
+        { status: 404 },
+      );
+    }
+
+    const result = await PageModel.deleteOne({ _id: existingTarget._id });
 
     if (result.deletedCount === 0) {
       return NextResponse.json(
-        { success: false, message: "Page not found" },
+        { success: false, message: "Failed to delete page" },
         { status: 404 },
       );
     }

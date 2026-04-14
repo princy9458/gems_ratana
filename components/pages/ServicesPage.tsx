@@ -2,45 +2,45 @@
 
 import React from 'react';
 import { motion } from 'motion/react';
-import { PenTool, Hammer, Package, Layout, Ruler, Lightbulb } from 'lucide-react';
+import { Gem, Sparkles, ShieldCheck, Ruler, Sun, Globe } from 'lucide-react';
 
 const ServicesPage = () => {
   const services = [
     { 
-      icon: PenTool, 
-      title: 'Interior Design', 
-      sub: 'Personalized consultations to transform your living spaces into a reflection of your personality.',
-      details: 'Our expert designers work with you to understand your lifestyle, aesthetic preferences, and spatial requirements. We provide full 3D visualizations and material boards to help you see your dream home before it exists.'
+      icon: Sparkles, 
+      title: 'Astrological Consultation', 
+      sub: 'Expert Kundli analysis to recommend the perfect gemstone for your life goals.',
+      details: 'Our experienced astrologers deeply analyze your birth chart to suggest natural, unheated gemstones that harmonize with your ruling planets and elevate your life\'s trajectory, ensuring maximum astrological benefits.'
     },
     { 
-      icon: Hammer, 
-      title: 'Custom Crafting', 
-      sub: 'Each piece is tailored to your specific measurements and material preferences by master artisans.',
-      details: 'From bespoke dining tables to custom-fitted wardrobes, our artisans use traditional techniques combined with modern technology to create furniture that fits your space perfectly.'
+      icon: Gem, 
+      title: 'Bespoke Jewelry Design', 
+      sub: 'Customized rings, pendants, and bracelets crafted around your chosen gemstone.',
+      details: 'Work with our master artisans to design high-end, bespoke settings in Gold, Silver, or Platinum. We ensure the gemstone touches your skin precisely as mandated by Vedic practices for optimal energy flow.'
     },
     { 
-      icon: Package, 
-      title: 'White-Glove Setup', 
-      sub: 'Room placement + assembly service so your furniture arrives ready to live beautifully.',
-      details: 'Our professional delivery team handles everything. We place each piece in its designated room, perform full assembly, and remove all packaging materials, leaving your home spotless and styled.'
-    },
-    { 
-      icon: Layout, 
-      title: 'Space Planning', 
-      sub: 'Optimizing your floor plan for better flow, functionality, and aesthetic balance.',
-      details: 'We analyze your floor plan to ensure every square foot is used effectively. Our plans prioritize movement, lighting, and the perfect placement of key furniture pieces.'
+      icon: ShieldCheck, 
+      title: 'Certification & Appraisal', 
+      sub: 'Every gemstone comes with guaranteed lab certification for complete peace of mind.',
+      details: 'We provide 100% genuine, unheated, and untreated gemstones accompanied by authentication certificates from government-approved and internationally recognized gemological laboratories (like IGI or GIA).'
     },
     { 
       icon: Ruler, 
-      title: 'On-Site Measurement', 
-      sub: 'Precision measuring services to ensure a perfect fit for every custom installation.',
-      details: 'Our team visits your location to take precise measurements, accounting for architectural details, electrical outlets, and structural elements that might affect furniture placement.'
+      title: 'Ring Size Consultation', 
+      sub: 'Precision sizing guides and consultations for a perfect, comfortable fit.',
+      details: 'Whether you are ordering online or consulting with us, we offer precision measuring support to account for the unique geometry of astrological rings, ensuring the metal holds the gem securely while fitting perfectly.'
     },
     { 
-      icon: Lightbulb, 
-      title: 'Lighting Consultation', 
-      sub: 'Expert advice on layering light to enhance the mood and functionality of your rooms.',
-      details: 'We help you choose the right combination of ambient, task, and accent lighting to complement your furniture and create the perfect atmosphere in every room.'
+      icon: Sun, 
+      title: 'Vedic Energization (Pran Pratishtha)', 
+      sub: 'Sacred consecration rituals performed before your gemstone is dispatched.',
+      details: 'A gemstone must be awakened to channel its planetary energy. Our pandits perform authentic Vedic mantras and Pran Pratishtha rituals specific to the gemstone\'s ruling planet to activate its dormant powers.'
+    },
+    { 
+      icon: Globe, 
+      title: 'Global Secure Delivery', 
+      sub: 'Fully insured, white-glove shipping to your doorstep, anywhere in the world.',
+      details: 'Your precious gemstones and luxury jewelry pieces are shipped using premium international logistics partners. Every package is fully insured, discreet, and tracked in real-time until it reaches you safely.'
     }
   ];
 
@@ -62,7 +62,7 @@ const ServicesPage = () => {
             transition={{ delay: 0.1 }}
             className="text-[48px] lg:text-[64px] font-bold leading-tight tracking-tight mb-6"
           >
-            Bespoke Services for a <br className="hidden md:block" /> Beautiful Home.
+            Premium Services for <br className="hidden md:block" /> Your Spiritual Journey.
           </motion.h1>
           <motion.p 
             initial={{ opacity: 0, y: 20 }}
@@ -70,7 +70,7 @@ const ServicesPage = () => {
             transition={{ delay: 0.2 }}
             className="text-lg text-muted font-semibold max-w-[700px] mx-auto"
           >
-            From initial concept to final installation, we provide a comprehensive range of services to help you create a space that is uniquely yours.
+            From expert astrological guidance to custom jewelry crafting and Vedic energization, we offer end-to-end services to bring you the finest natural gemstones.
           </motion.p>
         </div>
       </section>
@@ -111,13 +111,13 @@ const ServicesPage = () => {
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-secondary/10 rounded-full translate-y-1/2 -translate-x-1/2 blur-3xl" />
           
           <div className="relative z-10">
-            <h2 className="text-[38px] lg:text-[48px] font-bold tracking-tight mb-6">Ready to start your project?</h2>
+            <h2 className="text-[38px] lg:text-[48px] font-bold tracking-tight mb-6">Discover Your Perfect Gemstone</h2>
             <p className="text-white/70 font-semibold text-lg max-w-[600px] mx-auto mb-10">
-              Book a free 30-minute consultation with one of our design experts to discuss your vision.
+              Book an astrological consultation with our experts to find the natural gemstone that aligns with your destiny.
             </p>
             <div className="flex gap-4 justify-center flex-wrap">
               <button className="bg-secondary text-dark px-10 h-14 rounded-full text-[15px] font-bold uppercase tracking-wider hover:bg-secondary/90 transition-all">Book Consultation</button>
-              <button className="px-10 h-14 rounded-full border border-white/55 text-white text-[15px] font-bold uppercase tracking-wider hover:bg-white/10 transition-all">View Our Work</button>
+              <button className="px-10 h-14 rounded-full border border-white/55 text-white text-[15px] font-bold uppercase tracking-wider hover:bg-white/10 transition-all">Shop Gemstones</button>
             </div>
           </div>
         </motion.div>

@@ -11,6 +11,9 @@ export async function POST(req: NextRequest) {
     const name: string[] = formData.getAll("name") as string[];
     const altText: string[] = formData.getAll("altText") as string[];
     const foldername: string[] = formData.getAll("foldername") as string[];
+    const category: string[] = formData.getAll("category") as string[];
+    const isActive: string[] = formData.getAll("isActive") as string[];
+    const order: string[] = formData.getAll("order") as string[];
 
     const uploadDir = path.join(process.cwd(), "public", "uploads");
     if (!fs.existsSync(uploadDir)) {
@@ -24,6 +27,9 @@ export async function POST(req: NextRequest) {
       const singleName = name[i];
       const singleAltText = altText[i] || "ALT TEXT NOT ADDED";
       const singleFoldername = foldername[i] || "Uncategorized";
+      const singleCategory = (category[i] || singleFoldername || "hero").toLowerCase();
+      const singleIsActive = isActive[i] ? isActive[i] === "true" : true;
+      const singleOrder = order[i] ? Number(order[i]) : i;
 
       const filename: string = singleName
         ? singleName
@@ -41,9 +47,12 @@ export async function POST(req: NextRequest) {
         filename: filename,
         alt: singleAltText,
         foldername: singleFoldername,
+        category: singleCategory,
         url: `/uploads/${filename}`,
         size: buffer.length,
-        type: "image",
+        type: singleFile.type?.startsWith("video/") ? "video" : "image",
+        isActive: singleIsActive,
+        order: singleOrder,
         createdAt: new Date(),
       });
     }
@@ -68,24 +77,59 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    const searchParams = req.nextUrl.searchParams;
+    const category = searchParams.get("category");
+    const ids = searchParams.get("ids");
+    const active = searchParams.get("active");
     const db = await connectTenantDB();
     const mediaColl = await db.collection("media");
-    const media = await mediaColl.find().toArray();
-    const groupby = media.reduce((acc: any, item: any) => {
-      const foldername = item.foldername;
-      if (!acc[foldername]) {
-        acc[foldername] = [];
-      }
-      acc[foldername].push(item);
-      return acc;
-    }, {});
+    const query: any = {};
+    if (category) query.category = category.toLowerCase();
+    if (active === "true") query.isActive = true;
+    if (ids) {
+      const objectIds = ids
+        .split(",")
+        .map((id) => id.trim())
+        .filter(Boolean)
+        .map((id) => new ObjectId(id));
+      query._id = { $in: objectIds };
+    }
+    const media = await mediaColl.find(query).sort({ order: 1, createdAt: -1 }).toArray();
     return NextResponse.json({ success: true, data: media });
   } catch (error) {
     console.error("Error fetching media:", error);
     return NextResponse.json(
       { error: "Failed to fetch media" },
+      { status: 500 },
+    );
+  }
+}
+
+export async function PATCH(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const updates = Array.isArray(body?.updates) ? body.updates : [];
+    const db = await connectTenantDB();
+    const mediaColl = await db.collection("media");
+
+    const results = [];
+    for (const update of updates) {
+      if (!update?._id) continue;
+      const { _id, ...rest } = update;
+      const result = await mediaColl.updateOne(
+        { _id: new ObjectId(_id) },
+        { $set: rest },
+      );
+      results.push(result);
+    }
+
+    return NextResponse.json({ success: true, data: results });
+  } catch (error) {
+    console.error("Error updating media:", error);
+    return NextResponse.json(
+      { error: "Failed to update media" },
       { status: 500 },
     );
   }

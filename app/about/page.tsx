@@ -1,8 +1,8 @@
 import { Metadata } from "next";
-import Component from "@/components/pages/AboutGemPage";
 import PageContentRenderer from "@/components/pages/PageContentRenderer";
+import AboutGemPage from "@/components/pages/AboutGemPage";
 import { getPageData } from "@/lib/getPageData";
-import { isPagePublished } from "@/lib/store/pages/pageHelpers";
+import { normalizePage, isPagePublished } from "@/lib/store/pages/pageHelpers";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -12,11 +12,11 @@ export async function generateMetadata(): Promise<Metadata> {
 
   if (page && isPagePublished(page)) {
     return {
-      title: page.seo?.metaTitle || page.title || "About Us",
+      title: page.seo?.metaTitle || page.title || "About GemsRatna",
       description: page.seo?.metaDescription || "",
       keywords: page.seo?.keywords || undefined,
       openGraph: {
-        title: page.seo?.metaTitle || page.title || "About Us",
+        title: page.seo?.metaTitle || page.title || "About GemsRatna",
         description: page.seo?.metaDescription || "",
         images: page.seo?.ogImage ? [page.seo.ogImage] : undefined,
       },
@@ -29,12 +29,12 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function Page() {
+export default async function AboutPage() {
   const page = await getPageData("about");
 
-  if (page && isPagePublished(page)) {
-    return <PageContentRenderer page={page} />;
+  if (page && isPagePublished(page) && page.sections?.some((s: any) => s.enabled)) {
+    return <PageContentRenderer page={normalizePage(page)} />;
   }
 
-  return <Component />;
+  return <AboutGemPage />;
 }

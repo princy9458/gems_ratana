@@ -867,14 +867,22 @@ const CategoryPage = () => {
       );
     }
 
-    // if (searchQuery) {
-    //   result = result.filter((p) =>
-    //     p.title.toLowerCase().includes(searchQuery.toLowerCase()),
-    //   );
-    // }
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter((product: any) => {
+        const name = (product.name || "").toLowerCase();
+        const shortDescription = (product.shortDescription || "").toLowerCase();
+        const sku = (product.sku || "").toLowerCase();
+        return (
+          name.includes(query) ||
+          shortDescription.includes(query) ||
+          sku.includes(query)
+        );
+      });
+    }
 
     return result;
-  }, [currentCategory, allProducts]);
+  }, [currentCategory, allProducts, searchQuery]);
 
   // Pagination calculations
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
@@ -936,16 +944,16 @@ const CategoryPage = () => {
                 {currentCategory ? "Category" : "Collection"}
               </small>
               <h1 className="text-[46px] font-black leading-[1.05] tracking-tight">
-                {currentCategory ? currentCategory.name : "The Full Collection"}
+                {currentCategory ? currentCategory.name : "The Gem Collection"}
               </h1>
               <p className="text-muted font-bold mt-2.5 max-w-[70ch] leading-relaxed">
                 {currentCategory
                   ? currentCategory.description
-                  : "Explore our entire range of design-led furniture and home essentials. Crafted with purpose, built for life."}
+                  : "Explore certified natural gemstones, astrological recommendations, custom jewellery options, and signature Gems Ratna essentials curated for clarity, protection, and prosperity."}
               </p>
 
               <div className="flex flex-wrap gap-2.5 mt-4">
-                {["Seating", "Tables", "Lighting", "Decor", "Storage"].map(
+                {["Ruby", "Emerald", "Blue Sapphire", "Pearl", "Yellow Sapphire"].map(
                   (sub) => (
                     <button
                       key={sub}
@@ -960,13 +968,13 @@ const CategoryPage = () => {
 
             <div className="flex gap-2.5 flex-wrap justify-start lg:justify-end ml-auto">
               <div className="pill">
-                <b>{filteredProducts.length}</b> items
+                <b>{filteredProducts.length}</b> gems
               </div>
               <div className="pill">
-                <b>Fast</b> shipping
+                <b>Lab</b> certified
               </div>
               <div className="pill">
-                <b>Top</b> rated
+                <b>Vedic</b> guidance
               </div>
             </div>
           </div>
@@ -1024,9 +1032,9 @@ const CategoryPage = () => {
                 </AccordionSection>
 
                 {/* Material accordion */}
-                <AccordionSection title="Material">
+                <AccordionSection title="Stone Type">
                   <div className="space-y-2.5">
-                    {["Solid Oak", "Velvet", "Linen", "Ceramic"].map((mat) => (
+                    {["Ruby", "Emerald", "Blue Sapphire", "Pearl"].map((mat) => (
                       <label
                         key={mat}
                         className="flex items-center gap-2.5 text-sm font-bold text-foreground/80 cursor-pointer group"
@@ -1084,7 +1092,7 @@ const CategoryPage = () => {
                   />
                   <input
                     type="text"
-                    placeholder="Search in this category..."
+                    placeholder="Search gemstones, names or SKU..."
                     value={searchQuery}
                     onChange={handleSearchChange}
                     className="w-full h-12 pl-12 pr-6 rounded-2xl border border-border bg-surface font-bold focus:border-secondary outline-none transition-all text-sm"
@@ -1098,7 +1106,7 @@ const CategoryPage = () => {
                     <option>Newest First</option>
                     <option>Price: Low to High</option>
                     <option>Price: High to Low</option>
-                    <option>Most Popular</option>
+                    <option>Most Recommended</option>
                   </select>
                 </div>
               </div>
@@ -1185,9 +1193,9 @@ const CategoryPage = () => {
                   <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-muted/10 mb-6">
                     <Search size={32} className="text-muted" />
                   </div>
-                  <h3 className="text-2xl font-bold mb-2">No products found</h3>
+                  <h3 className="text-2xl font-bold mb-2">No gemstones found</h3>
                   <p className="text-muted font-semibold mb-8">
-                    We couldn&apos;t find any products matching your search.
+                    We couldn&apos;t find any Gems Ratna stones matching your search right now.
                   </p>
                   <button
                     onClick={() => setSearchQuery("")}

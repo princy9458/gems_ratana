@@ -22,11 +22,15 @@ interface MediaItem {
   _id: string;
   id?: string;
   filename: string;
+  title?: string;
   url: string;
   alt: string;
   size: number;
   foldername: string;
+  category?: string;
   type: string;
+  isActive?: boolean;
+  order?: number;
   createdAt: string;
 }
 
@@ -47,11 +51,14 @@ export const MediaUploader = ({
   const [selectedItem, setSelectedItem] = useState<MediaItem | null>(null);
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isIngestOpen, setIsIngestOpen] = useState(false);
+  const [mediaTitle, setMediaTitle] = useState("");
+  const [mediaCategory, setMediaCategory] = useState<string>("Hero");
 
   const fetchMedia = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch("/api/admin/media");
+      const response = await fetch("/api/media?active=true");
       const data = await response.json();
       if (data.success) {
         setMediaLibrary(data.data);
@@ -75,8 +82,8 @@ export const MediaUploader = ({
       alt: "",
       preview: URL.createObjectURL(file),
       size: (file.size / 1024).toFixed(0) + " KB",
-      foldername: selectedFolder || "Hero",
-      type: "image",
+      foldername: mediaCategory || selectedFolder || "Hero",
+      type: file.type?.startsWith("video/") ? "video" : "image",
     }));
     setSelectedFiles([...selectedFiles, ...fileObjects]);
     setActiveTab("upload");
@@ -91,8 +98,8 @@ export const MediaUploader = ({
       alt: "",
       preview: URL.createObjectURL(file),
       size: (file.size / 1024).toFixed(0) + " KB",
-      foldername: selectedFolder || "Hero",
-      type: "image",
+      foldername: mediaCategory || selectedFolder || "Hero",
+      type: file.type?.startsWith("video/") ? "video" : "image",
     }));
     setSelectedFiles([...selectedFiles, ...fileObjects]);
     setActiveTab("upload");
@@ -112,30 +119,52 @@ export const MediaUploader = ({
     if (selectedFiles.length === 0) return;
 
     const toastId = toast.loading("Uploading spiritual assets...");
-    const formData = new FormData();
-    for (let i of selectedFiles) {
-      formData.append("files", i.file);
-      formData.append("name", i.filename);
-      formData.append("altText", i.alt);
-      formData.append("foldername", i.foldername);
-    }
-
     try {
-      const response = await fetch("/api/admin/media", {
-        method: "POST",
-        body: formData,
-      });
-      const data = await response.json();
-      if (data.success) {
-        setMediaLibrary([...data.data, ...mediaLibrary]);
-        setSelectedFiles([]);
-        setActiveTab("library");
-        toast.success("Assets uploaded and cataloged", { id: toastId });
-      } else {
-        toast.error(data.error || "Upload failed", { id: toastId });
+      const uploadedItems: any[] = [];
+
+      for (const fileItem of selectedFiles) {
+        console.log("Uploading...", fileItem.filename);
+
+        const formData = new FormData();
+        formData.append("file", fileItem.file);
+        formData.append("title", mediaTitle || fileItem.filename);
+        formData.append("category", (fileItem.foldername || mediaCategory || "Hero").toLowerCase());
+        formData.append("alt", fileItem.alt || "");
+        formData.append("isActive", "true");
+        formData.append("type", fileItem.type || "image");
+        formData.append("order", String(fileItem.order ?? uploadedItems.length));
+
+        const response = await fetch("/api/media", {
+          method: "POST",
+          body: formData,
+        });
+
+        console.log("Upload response status:", response.status);
+        const data = await response.json();
+        console.log("Upload response:", data);
+
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || "Upload failed");
+        }
+
+        if (data.data) {
+          uploadedItems.push(data.data);
+        }
       }
+
+      if (uploadedItems.length > 0) {
+        setMediaLibrary([...uploadedItems, ...mediaLibrary]);
+      }
+      setSelectedFiles([]);
+      setActiveTab("library");
+      setMediaTitle("");
+      setMediaCategory("Hero");
+      setIsIngestOpen(false);
+      await fetchMedia();
+      toast.success("Assets uploaded and cataloged", { id: toastId });
     } catch (error) {
-      toast.error("Network error during upload", { id: toastId });
+      console.error("Upload error:", error);
+      toast.error(error instanceof Error ? error.message : "Network error during upload", { id: toastId });
     }
   };
 
@@ -196,7 +225,11 @@ export const MediaUploader = ({
             </div>
             <div className="flex items-center gap-3">
               <button 
-                onClick={() => document.getElementById("fileInput")?.click()}
+                onClick={() => {
+                  console.log("Ingest New Media clicked");
+                  setIsIngestOpen(true);
+                  setActiveTab("upload");
+                }}
                 className="bg-amber-500 hover:bg-amber-400 text-black px-8 py-3.5 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all flex items-center gap-3 shadow-xl shadow-amber-500/10"
               >
                 <Plus size={16} />
@@ -308,7 +341,7 @@ export const MediaUploader = ({
                     onClick={() => document.getElementById("fileInput")?.click()}
                     className="border-2 border-dashed border-white/10 rounded-[3rem] p-16 text-center cursor-pointer hover:bg-white/5 transition-all group relative overflow-hidden bg-[#0d0d0d]"
                   >
-                    <input id="fileInput" type="file" multiple accept="image/*" onChange={handleFileSelect} className="hidden" />
+                    <input id="fileInput" type="file" multiple accept="image/*,video/*" onChange={handleFileSelect} className="hidden" />
                     <div className="relative z-10">
                       <div className="w-20 h-20 mx-auto mb-6 bg-amber-400/10 rounded-[1.5rem] flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg border border-amber-400/5">
                         <Upload className="text-amber-400" size={32} />
@@ -430,8 +463,149 @@ export const MediaUploader = ({
                 </div>
               )}
             </AnimatePresence>
-          </div>
         </div>
+      </div>
+
+      <AnimatePresence>
+        {isIngestOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 p-4 backdrop-blur-md"
+            onClick={() => setIsIngestOpen(false)}
+          >
+            <motion.div
+              initial={{ y: 16, scale: 0.98 }}
+              animate={{ y: 0, scale: 1 }}
+              exit={{ y: 16, scale: 0.98 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-3xl rounded-[2rem] border border-white/10 bg-[#0d0d0d] p-6 shadow-2xl"
+            >
+              <div className="mb-6 flex items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-2xl font-bold tracking-tight text-white">Ingest New Media</h2>
+                  <p className="mt-1 text-[10px] font-black uppercase tracking-[0.3em] text-white/35">
+                    Open the upload interface and push assets into the vault
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsIngestOpen(false)}
+                  className="rounded-full border border-white/10 p-2 text-white/50 transition-colors hover:bg-white/5 hover:text-white"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="grid gap-5 md:grid-cols-2">
+                <div className="space-y-2 md:col-span-2">
+                  <label className="ml-1 text-[9px] font-black uppercase tracking-widest text-white/25">
+                    Media Title
+                  </label>
+                  <input
+                    value={mediaTitle}
+                    onChange={(e) => setMediaTitle(e.target.value)}
+                    placeholder="Optional title for uploaded media"
+                    className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:ring-2 focus:ring-amber-500/30"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="ml-1 text-[9px] font-black uppercase tracking-widest text-white/25">
+                    Category
+                  </label>
+                  <select
+                    value={mediaCategory}
+                    onChange={(e) => setMediaCategory(e.target.value)}
+                    className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:ring-2 focus:ring-amber-500/30"
+                  >
+                    {PREDEFINED_FOLDERS.map((folder) => (
+                      <option key={folder} value={folder}>
+                        {folder}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="ml-1 text-[9px] font-black uppercase tracking-widest text-white/25">
+                    Supported
+                  </label>
+                  <div className="rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white/50">
+                    Images and videos
+                  </div>
+                </div>
+
+                <label
+                  htmlFor="mediaIngestFile"
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={handleDrop}
+                  className="md:col-span-2 flex cursor-pointer flex-col items-center justify-center rounded-[2rem] border-2 border-dashed border-white/10 bg-white/5 px-6 py-16 text-center transition-colors hover:bg-white/10"
+                >
+                  <Upload className="mb-4 text-amber-400" size={32} />
+                  <p className="text-lg font-bold text-white">Drop files here or click to browse</p>
+                  <p className="mt-2 text-xs uppercase tracking-[0.25em] text-white/35">
+                    PNG, JPG, MP4, MOV supported
+                  </p>
+                </label>
+                <input
+                  id="mediaIngestFile"
+                  type="file"
+                  multiple
+                  accept="image/*,video/*"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+              </div>
+
+              {selectedFiles.length > 0 && (
+                <div className="mt-6 space-y-3">
+                  <p className="text-[10px] font-black uppercase tracking-[0.25em] text-white/35">
+                    {selectedFiles.length} file(s) queued
+                  </p>
+                  <div className="max-h-44 space-y-3 overflow-auto pr-1">
+                    {selectedFiles.map((file, index) => (
+                      <div key={index} className="flex items-center gap-4 rounded-2xl border border-white/5 bg-white/5 p-3">
+                        <img src={file.preview} alt="" className="h-14 w-14 rounded-xl object-cover" />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-bold text-white">{file.filename}</p>
+                          <p className="text-xs text-white/35">{file.type} · {file.foldername}</p>
+                        </div>
+                        <button
+                          onClick={() => removeFile(index)}
+                          className="rounded-xl p-2 text-white/30 transition-colors hover:bg-white/5 hover:text-rose-400"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-6 flex items-center justify-end gap-3">
+                <button
+                  onClick={() => setIsIngestOpen(false)}
+                  className="rounded-2xl border border-white/10 px-5 py-3 text-xs font-black uppercase tracking-widest text-white/60 transition-colors hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    console.log("Uploading...");
+                    await handleUpload();
+                  }}
+                  className="rounded-2xl bg-amber-500 px-5 py-3 text-xs font-black uppercase tracking-widest text-black transition-colors hover:bg-amber-400"
+                >
+                  Upload Media
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
         {/* Cinematic Detail Overlay */}
         <AnimatePresence>

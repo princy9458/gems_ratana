@@ -1,13 +1,17 @@
 export type SectionType = 
   | "hero" 
   | "collections" 
+  | "why"
+  | "products"
+  | "features"
   | "cta" 
   | "testimonials" 
   | "faq" 
   | "blog" 
   | "usp"
   | "navbar"
-  | "trustbar";
+  | "trustbar"
+  | "footer";
 
 export interface PageBlock {
   id: string;
@@ -21,8 +25,21 @@ export interface HeroContent {
   title: string;
   subtitle: string;
   images: string[];
+  mediaIds?: string[];
+  mediaItems?: Array<{
+    _id?: string;
+    id?: string;
+    url: string;
+    type?: "image" | "video" | string;
+    category?: string;
+    isActive?: boolean;
+    order?: number;
+    alt?: string;
+    filename?: string;
+  }>;
   buttonText: string;
   buttonLink: string;
+  eyebrow?: string;
   overlayOpacity?: number;
   autoPlay?: boolean;
   imageAlt?: string;
@@ -52,9 +69,50 @@ export interface TrustBarContent {
 export interface CollectionsContent {
   title: string;
   subtitle?: string;
-  collectionIds: string[];
-  layout: "grid" | "carousel";
-  maxItems?: number;
+  items: Array<{
+    id: string;
+    name: string;
+    image: string;
+    link?: string;
+  }>;
+}
+
+export interface WhyPoint {
+  id: string;
+  title: string;
+  description: string;
+  icon?: string;
+}
+
+export interface WhyContent {
+  title: string;
+  points: WhyPoint[];
+}
+
+export interface ProductItem {
+  id: string;
+  name: string;
+  price: string;
+  image: string;
+  tag?: string;
+  link?: string;
+}
+
+export interface ProductsContent {
+  title: string;
+  items: ProductItem[];
+}
+
+export interface FeatureItem {
+  id: string;
+  title: string;
+  description: string;
+  icon?: string;
+}
+
+export interface FeaturesContent {
+  title: string;
+  items: FeatureItem[];
 }
 
 export interface CTAContent {
@@ -63,7 +121,7 @@ export interface CTAContent {
   backgroundImage?: string;
   buttonText: string;
   buttonLink: string;
-  theme: "dark" | "light" | "accent";
+  theme?: "dark" | "light" | "accent";
 }
 
 export interface TestimonialItem {
@@ -108,6 +166,23 @@ export interface USPItem {
 export interface USPContent {
   title?: string;
   items: USPItem[];
+}
+
+export interface FooterLink {
+  id: string;
+  label: string;
+  href: string;
+}
+
+export interface FooterContent {
+  brandName?: string;
+  brandText: string;
+  links: FooterLink[];
+  contact: {
+    phone?: string;
+    email?: string;
+    address?: string;
+  };
 }
 
 export type PageStatus = "draft" | "published";

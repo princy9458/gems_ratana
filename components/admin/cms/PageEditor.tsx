@@ -33,7 +33,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion, AnimatePresence, Reorder, useDragControls } from "motion/react";
 import { Page, PageBlock, SectionType, PageStatus } from "@/lib/store/pages/pageType";
-import { createPageDraft, createDefaultSectionContent, normalizeHero } from "@/lib/store/pages/pageHelpers";
+import { createPageDraft, createDefaultSectionContent, normalizeHero, normalizeSectionContent } from "@/lib/store/pages/pageHelpers";
 import { MediaLibraryModal } from "../media/MediaLibraryModal";
 
 interface PageEditorProps {
@@ -45,6 +45,9 @@ interface PageEditorProps {
 const SECTION_INFO: Record<SectionType, { title: string; icon: any; color: string }> = {
   hero: { title: "Hero Section", icon: Sparkles, color: "text-amber-400" },
   collections: { title: "Collections", icon: LayoutGrid, color: "text-blue-400" },
+  why: { title: "Why Section", icon: ShieldCheck, color: "text-emerald-400" },
+  products: { title: "Products", icon: LayoutGrid, color: "text-indigo-400" },
+  features: { title: "Features", icon: Sparkles, color: "text-cyan-400" },
   cta: { title: "Call to Action", icon: PlusCircle, color: "text-rose-400" },
   testimonials: { title: "Testimonials", icon: FileText, color: "text-emerald-400" },
   faq: { title: "FAQ", icon: FileText, color: "text-purple-400" },
@@ -52,7 +55,19 @@ const SECTION_INFO: Record<SectionType, { title: string; icon: any; color: strin
   usp: { title: "Unique Selling Points", icon: Settings, color: "text-indigo-400" },
   navbar: { title: "Navigation Menu", icon: Menu, color: "text-white" },
   trustbar: { title: "Trust Signals", icon: ShieldCheck, color: "text-amber-200" },
+  footer: { title: "Footer", icon: Menu, color: "text-slate-300" },
 };
+
+const HOME_SECTION_BLUEPRINTS: Array<{ type: SectionType; adminTitle: string }> = [
+  { type: "hero", adminTitle: "Hero Section" },
+  { type: "collections", adminTitle: "Collections" },
+  { type: "why", adminTitle: "Why Section" },
+  { type: "products", adminTitle: "Products" },
+  { type: "features", adminTitle: "Features" },
+  { type: "testimonials", adminTitle: "Testimonials" },
+  { type: "cta", adminTitle: "Call to Action" },
+  { type: "footer", adminTitle: "Footer" },
+];
 
 export const PageEditor: React.FC<PageEditorProps> = ({
   initialData,
@@ -66,35 +81,28 @@ export const PageEditor: React.FC<PageEditorProps> = ({
   useEffect(() => {
     if (initialData) {
       const hero = normalizeHero(initialData.hero);
-      const hasHeroSection = Array.isArray(initialData.sections)
-        ? initialData.sections.some((section) => section.type === "hero")
-        : false;
-      const heroSection = hasHeroSection
-        ? null
-        : {
-            id: "hero-1",
-            type: "hero" as SectionType,
+      const sections = Array.isArray(initialData.sections) ? initialData.sections : [];
+      const normalizedSections = sections.map((section) => ({
+        ...section,
+        content: normalizeSectionContent(section.type, section.content),
+      }));
+      const isHomePage = initialData.page === "home" || initialData.slug === "home";
+      const missingHomeSections = isHomePage
+        ? HOME_SECTION_BLUEPRINTS.filter(
+            (blueprint) => !normalizedSections.some((section) => section.type === blueprint.type),
+          ).map((blueprint, index) => ({
+            id: `${blueprint.type}-${index + 1}`,
+            type: blueprint.type,
             enabled: true,
-            adminTitle: "Hero Section",
-            content: hero,
-          };
+            adminTitle: blueprint.adminTitle,
+            content: createDefaultSectionContent(blueprint.type),
+          }))
+        : [];
 
       setPage({
         ...initialData,
         hero,
-        sections: [
-          ...(heroSection ? [heroSection] : []),
-          ...(Array.isArray(initialData.sections)
-            ? initialData.sections.map((section) =>
-                section.type === "hero"
-                  ? {
-                      ...section,
-                      content: normalizeHero(section.content || hero),
-                    }
-                  : section,
-              )
-            : []),
-        ],
+        sections: [...normalizedSections, ...missingHomeSections],
       });
     }
   }, [initialData]);
@@ -152,6 +160,16 @@ export const PageEditor: React.FC<PageEditorProps> = ({
     }));
   };
 
+  const sanitizeHeroForSave = (heroContent: any) => {
+    if (!heroContent) return heroContent;
+    const { mediaItems, ...rest } = heroContent;
+    return {
+      ...rest,
+      mediaIds: Array.isArray(rest.mediaIds) ? rest.mediaIds.filter(Boolean) : [],
+      images: Array.isArray(rest.images) ? rest.images.filter(Boolean) : [],
+    };
+  };
+
   const handleSave = async () => {
     if (!page.title || !page.slug) {
       toast.error("Please provide both a title and slug.");
@@ -161,10 +179,10 @@ export const PageEditor: React.FC<PageEditorProps> = ({
     const heroSection = page.sections.find(s => s.type === "hero");
     const updatedPage = {
       ...page,
-      hero: normalizeHero(heroSection?.content || page.hero),
+      hero: sanitizeHeroForSave(normalizeHero(heroSection?.content || page.hero)),
       sections: page.sections.map((section) =>
         section.type === "hero"
-          ? { ...section, content: normalizeHero(section.content || page.hero) }
+          ? { ...section, content: sanitizeHeroForSave(normalizeHero(section.content || page.hero)) }
           : section,
       ),
     };
@@ -572,6 +590,9 @@ const SectionCard = ({ section, onUpdate, onUpdateContent, onRemove }: { section
                     <div className="pointer-events-none">
                       {section.type === 'hero' && <HeroSection content={section.content} />}
                       {section.type === 'collections' && <CollectionsSection content={section.content} />}
+                      {section.type === 'why' && <WhySection content={section.content} />}
+                      {section.type === 'products' && <ProductsSection content={section.content} />}
+                      {section.type === 'features' && <FeaturesSection content={section.content} />}
                       {section.type === 'cta' && <CTASection content={section.content} />}
                       {section.type === 'testimonials' && <TestimonialsSection content={section.content} />}
                       {section.type === 'faq' && <FAQSection content={section.content} />}
@@ -579,6 +600,7 @@ const SectionCard = ({ section, onUpdate, onUpdateContent, onRemove }: { section
                       {section.type === 'usp' && <USPSection content={section.content} />}
                       {section.type === 'navbar' && <NavbarSection content={section.content} />}
                       {section.type === 'trustbar' && <TrustBarSection content={section.content} />}
+                      {section.type === 'footer' && <FooterSection content={section.content} />}
                     </div>
                  </div>
                ) : (
@@ -586,6 +608,9 @@ const SectionCard = ({ section, onUpdate, onUpdateContent, onRemove }: { section
                    <div className="grid gap-8">
                      {section.type === 'hero' && <HeroEditor content={section.content} onChange={onUpdateContent} />}
                      {section.type === 'collections' && <CollectionsEditor content={section.content} onChange={onUpdateContent} />}
+                     {section.type === 'why' && <WhyEditor content={section.content} onChange={onUpdateContent} />}
+                     {section.type === 'products' && <ProductsEditor content={section.content} onChange={onUpdateContent} />}
+                     {section.type === 'features' && <FeaturesEditor content={section.content} onChange={onUpdateContent} />}
                      {section.type === 'cta' && <CTAEditor content={section.content} onChange={onUpdateContent} />}
                      {section.type === 'testimonials' && <TestimonialsEditor content={section.content} onChange={onUpdateContent} />}
                      {section.type === 'faq' && <FAQEditor content={section.content} onChange={onUpdateContent} />}
@@ -593,6 +618,7 @@ const SectionCard = ({ section, onUpdate, onUpdateContent, onRemove }: { section
                      {section.type === 'usp' && <USPEditor content={section.content} onChange={onUpdateContent} />}
                      {section.type === 'navbar' && <NavbarEditor content={section.content} onChange={onUpdateContent} />}
                      {section.type === 'trustbar' && <TrustBarEditor content={section.content} onChange={onUpdateContent} />}
+                     {section.type === 'footer' && <FooterEditor content={section.content} onChange={onUpdateContent} />}
                    </div>
                  </div>
                )}
@@ -610,13 +636,27 @@ const HeroSection = ({ content }: any) => {
   const images = hero.images || [];
   const activeImage = images[0] || "";
   return (
-    <div className="bg-neutral-900 min-h-[400px] relative p-12 flex flex-col justify-center">
-      {activeImage && <img src={activeImage} className="absolute inset-0 w-full h-full object-cover opacity-40" alt={hero.imageAlt || hero.title} />}
-      <div className="relative z-10">
-        <h1 className="text-4xl font-bold text-white mb-4">{hero.title}</h1>
-        <p className="text-sm text-white/60 mb-8 max-w-lg">{hero.subtitle}</p>
-        <div className="flex gap-4">
-          <div className="bg-amber-400 text-black px-6 py-2 rounded-full text-xs font-bold">{hero.buttonText}</div>
+    <div className="relative min-h-[420px] overflow-hidden rounded-[2rem] bg-black p-12 text-white">
+      {activeImage && (
+        <img
+          src={activeImage}
+          className="absolute inset-0 h-full w-full object-cover opacity-40"
+          alt={hero.imageAlt || hero.title}
+        />
+      )}
+      <div className="absolute inset-0 bg-black/60" />
+      <div className="relative z-10 max-w-3xl">
+        <p className="mb-4 text-[10px] font-black uppercase tracking-[0.45em] text-white/40">
+          {hero.eyebrow || "Unlock the Power of Gemstones"}
+        </p>
+        <h1 className="mb-4 font-serif text-5xl leading-[0.95] text-white md:text-7xl">
+          {hero.title}
+        </h1>
+        <p className="mb-8 max-w-xl text-base text-white/65 md:text-xl">
+          {hero.subtitle}
+        </p>
+        <div className="inline-flex rounded-full bg-amber-400 px-6 py-3 text-xs font-black uppercase tracking-[0.3em] text-black">
+          {hero.buttonText}
         </div>
       </div>
     </div>
@@ -652,6 +692,53 @@ const CollectionsSection = ({ content }: any) => (
   </div>
 );
 
+const WhySection = ({ content }: any) => (
+  <div className="bg-white text-black p-12">
+    <h2 className="text-3xl font-bold mb-8 text-center">{content.title}</h2>
+    <div className="grid grid-cols-4 gap-4">
+      {(content.points || []).map((point: any) => (
+        <div key={point.id} className="rounded-2xl border border-neutral-200 p-4 bg-white">
+          <p className="font-bold mb-2">{point.title}</p>
+          <p className="text-xs text-neutral-500">{point.description}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+const ProductsSection = ({ content }: any) => (
+  <div className="bg-[#faf8f5] text-black p-12">
+    <h2 className="text-3xl font-bold mb-8 text-center">{content.title}</h2>
+    <div className="grid grid-cols-4 gap-4">
+      {(content.items || []).map((item: any) => (
+        <div key={item.id} className="rounded-2xl overflow-hidden bg-white border border-neutral-200">
+          <div className="aspect-[4/5] bg-neutral-200">
+            {item.image ? <img src={item.image} className="w-full h-full object-cover" alt={item.name} /> : null}
+          </div>
+          <div className="p-4">
+            <p className="font-bold">{item.name}</p>
+            <p className="text-xs text-neutral-500">{item.price}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+const FeaturesSection = ({ content }: any) => (
+  <div className="bg-[#05081a] text-white p-12">
+    <h2 className="text-3xl font-bold mb-8 text-center">{content.title}</h2>
+    <div className="grid grid-cols-4 gap-4">
+      {(content.items || []).map((item: any) => (
+        <div key={item.id} className="rounded-2xl border border-white/10 p-4 bg-white/5">
+          <p className="font-bold mb-2">{item.title}</p>
+          <p className="text-xs text-white/60">{item.description}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
 const CTASection = ({ content }: any) => (
   <div className="p-8">
     <div className={`p-10 rounded-[2rem] text-center ${content.theme === 'accent' ? 'bg-amber-400 text-black' : 'bg-neutral-900 text-white'}`}>
@@ -666,10 +753,30 @@ const TestimonialsSection = ({ content }: any) => (
     <div className="grid grid-cols-3 gap-4">
       {(content.items || []).map((t:any) => (
         <div key={t.id} className="p-6 bg-white/5 rounded-2xl border border-white/5 text-[10px]">
-          <p className="italic mb-4">"{t.content}"</p>
+          <p className="italic mb-4">"{t.content || t.message || ""}"</p>
           <p className="font-bold">{t.name}</p>
         </div>
       ))}
+    </div>
+  </div>
+);
+
+const FooterSection = ({ content }: any) => (
+  <div className="p-12 bg-[#030816] text-white">
+    <div className="grid grid-cols-3 gap-8">
+      <div>
+        <p className="text-2xl font-bold mb-4">{content.brandName || "Gems_Ratna"}</p>
+        <p className="text-xs text-white/50">{content.brandText}</p>
+      </div>
+      <div className="space-y-2">
+        {(content.links || []).map((link: any) => (
+          <p key={link.id} className="text-xs text-white/60">{link.label}</p>
+        ))}
+      </div>
+      <div className="space-y-2">
+        {content.contact?.phone && <p className="text-xs text-white/60">{content.contact.phone}</p>}
+        {content.contact?.email && <p className="text-xs text-white/60">{content.contact.email}</p>}
+      </div>
     </div>
   </div>
 );
@@ -707,124 +814,305 @@ const USPSection = ({ content }: any) => (
 
 /* --- Specific Section Editors --- */
 
-const HeroEditor = ({ content, onChange }: { content: any; onChange: (u: any) => void }) => (
-  <div className="space-y-8">
-    <div className="grid lg:grid-cols-2 gap-10">
-      <div className="space-y-6">
-        <Field label="Hero Title" value={content.title} onChange={v => onChange({ title: v })} />
-        <Field label="Hero Subtitle" value={content.subtitle} onChange={v => onChange({ subtitle: v })} textarea />
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="Button Text" value={content.buttonText} onChange={v => onChange({ buttonText: v })} />
-          <Field label="Button Link" value={content.buttonLink} onChange={v => onChange({ buttonLink: v })} />
-        </div>
-      </div>
+const HeroEditor = ({ content, onChange }: { content: any; onChange: (u: any) => void }) => {
+  const handleHeroPatch = (updates: any) => onChange(updates);
 
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <Label className="text-[10px] font-black uppercase tracking-widest text-amber-200">Hero Images</Label>
+  return (
+    <div className="space-y-8">
+      <div className="grid lg:grid-cols-2 gap-10">
+        <div className="space-y-6">
+          <Field label="Hero Title" value={content.title} onChange={v => handleHeroPatch({ title: v })} />
+          <Field label="Hero Subtitle" value={content.subtitle} onChange={v => handleHeroPatch({ subtitle: v })} textarea />
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Button Text" value={content.buttonText} onChange={v => handleHeroPatch({ buttonText: v })} />
+            <Field label="Button Link" value={content.buttonLink} onChange={v => handleHeroPatch({ buttonLink: v })} />
+          </div>
+
+          <div className="flex items-center justify-between bg-white/5 p-6 rounded-[2rem]">
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-white tracking-tight">Overlay Darkening</label>
+              <p className="text-[9px] text-white/40 font-black uppercase tracking-widest">Global across all media</p>
+            </div>
+            <div className="flex items-center gap-4">
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={content.overlayOpacity || 40}
+                onChange={e => handleHeroPatch({ overlayOpacity: parseInt(e.target.value) })}
+                className="accent-amber-500 w-32"
+              />
+              <span className="text-xs font-mono font-bold text-amber-200">{content.overlayOpacity || 40}%</span>
+            </div>
+          </div>
+        </div>
+
+        <HeroMediaPicker content={content} onChange={handleHeroPatch} />
+      </div>
+    </div>
+  );
+};
+
+const HeroMediaPicker = ({ content, onChange }: { content: any; onChange: (u: any) => void }) => {
+  const [availableMedia, setAvailableMedia] = useState<any[]>([]);
+  const [selectedMedia, setSelectedMedia] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const syncHeroPayload = (items: any[]) => {
+    onChange({
+      mediaIds: items.map((item) => String(item._id || item.id)),
+      mediaItems: items,
+      images: items.filter((item) => item?.type !== "video").map((item) => item.url).filter(Boolean),
+    });
+  };
+
+  const persistMediaState = async (items: any[]) => {
+    const updates = items.map((item, index) => ({
+      _id: String(item._id || item.id),
+      order: index,
+      isActive: item.isActive !== false,
+      category: "hero",
+      type: item.type || "image",
+    }));
+
+    try {
+      await fetch("/api/admin/media", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ updates }),
+      });
+    } catch (error) {
+      console.error("Failed to persist hero media order:", error);
+    }
+  };
+
+  const hydrateSelected = (items: any[], fallbackIds: string[] = []) => {
+    const normalized = items
+      .filter(Boolean)
+      .map((item, index) => ({
+        ...item,
+        _id: String(item._id || item.id),
+        order: typeof item.order === "number" ? item.order : index,
+        isActive: item.isActive !== false,
+        category: item.category || "hero",
+        type: item.type || (String(item.url || "").match(/\.(mp4|mov|webm)$/i) ? "video" : "image"),
+      }))
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
+    if (normalized.length === 0 && fallbackIds.length > 0) {
+      const matched = fallbackIds
+        .map((id) => availableMedia.find((item) => String(item._id) === id))
+        .filter(Boolean);
+      return hydrateSelected(matched);
+    }
+
+    return normalized;
+  };
+
+  useEffect(() => {
+    const loadMedia = async () => {
+      setLoading(true);
+      try {
+        const response = await fetch("/api/admin/media?category=hero");
+        const data = await response.json();
+        if (data.success) {
+          const sorted = (data.data || []).sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0));
+          setAvailableMedia(sorted);
+        }
+      } catch (error) {
+        console.error("Failed to load hero media", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadMedia();
+  }, []);
+
+  useEffect(() => {
+    const fallbackIds = Array.isArray(content.mediaIds) ? content.mediaIds.filter(Boolean) : [];
+    const fromContent = Array.isArray(content.mediaItems) ? content.mediaItems : [];
+    const source = fromContent.length > 0 ? fromContent : [];
+    const nextSelected = hydrateSelected(source, fallbackIds);
+    setSelectedMedia(nextSelected);
+  }, [content.mediaIds, content.mediaItems, availableMedia]);
+
+  const addMedia = (item: any) => {
+    const normalized = {
+      ...item,
+      _id: String(item._id || item.id),
+      order: selectedMedia.length,
+      isActive: item.isActive !== false,
+      category: "hero",
+      type: item.type || (String(item.url || "").match(/\.(mp4|mov|webm)$/i) ? "video" : "image"),
+    };
+    const next = [...selectedMedia, normalized];
+    setSelectedMedia(next);
+    syncHeroPayload(next);
+    void persistMediaState(next);
+  };
+
+  const removeMedia = (id: string) => {
+    const next = selectedMedia
+      .filter((item) => String(item._id) !== String(id))
+      .map((item, index) => ({ ...item, order: index }));
+    setSelectedMedia(next);
+    syncHeroPayload(next);
+    void persistMediaState(next);
+  };
+
+  const toggleActive = (id: string, isActive: boolean) => {
+    const next = selectedMedia.map((item) =>
+      String(item._id) === String(id) ? { ...item, isActive } : item,
+    );
+    setSelectedMedia(next);
+    syncHeroPayload(next);
+    void persistMediaState(next);
+  };
+
+  const reorderSelected = (items: any[]) => {
+    const next = items.map((item, index) => ({ ...item, order: index }));
+    setSelectedMedia(next);
+    syncHeroPayload(next);
+    void persistMediaState(next);
+  };
+
+  const selectedIds = new Set(selectedMedia.map((item) => String(item._id)));
+  const previewItem = selectedMedia.find((item) => item.isActive !== false) || selectedMedia[0];
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-[2rem] border border-white/5 bg-black/30 p-5">
+        <div className="mb-5 flex items-center justify-between gap-3">
+          <div>
+            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-amber-200">Hero Media Picker</h3>
+            <p className="mt-1 text-xs text-white/40">Filter: category = hero</p>
+          </div>
           <Button
-            onClick={() => onChange({ images: [...(content.images || []), ""] })}
             variant="outline"
             size="sm"
-            className="h-8 rounded-xl border-white/10 text-xs font-bold"
+            className="h-9 rounded-xl border-white/10 text-xs font-bold"
+            onClick={() => onChange({ mediaIds: selectedMedia.map((item) => String(item._id)), mediaItems: selectedMedia, images: selectedMedia.filter((item) => item.type !== "video").map((item) => item.url) })}
           >
-            + Add Image
+            Apply Selection
           </Button>
         </div>
 
-        <div className="space-y-4">
-          {(content.images || []).map((image: string, idx: number) => (
-            <div key={`${image || "hero-image"}-${idx}`} className="bg-black/40 p-4 rounded-[2rem] border border-white/5 space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black uppercase tracking-widest text-white/30">Image #{idx + 1}</span>
-                <button
-                  onClick={() => onChange({ images: (content.images || []).filter((_: string, i: number) => i !== idx) })}
-                  className="text-white/20 hover:text-rose-400 transition-colors"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-
-              <div className="space-y-3">
-                <Input
-                  value={image}
-                  onChange={(e) => {
-                    const nextImages = [...(content.images || [])];
-                    nextImages[idx] = e.target.value;
-                    onChange({ images: nextImages });
-                  }}
-                  className="h-12 rounded-2xl border-white/10 bg-black/40 px-4 text-sm"
-                  placeholder="https://..."
-                />
-                <div className="aspect-video rounded-3xl border border-white/10 bg-black/40 overflow-hidden relative group">
-                  {image ? (
-                    <>
-                      <img src={image} className="w-full h-full object-cover" alt="" />
-                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity gap-2">
-                        <MediaLibraryModal
-                          onSelect={m => {
-                            const nextImages = [...(content.images || [])];
-                            nextImages[idx] = m.url;
-                            onChange({ images: nextImages });
-                          }}
-                          trigger={<Button size="sm" className="bg-white text-black font-bold h-10 rounded-xl">Replace</Button>}
-                        />
-                        <Button
-                          size="sm"
-                          onClick={() => {
-                            const nextImages = [...(content.images || [])];
-                            nextImages[idx] = "";
-                            onChange({ images: nextImages });
-                          }}
-                          variant="destructive"
-                          className="h-10 rounded-xl"
-                        >
-                          Remove
-                        </Button>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center border-dashed border-2 border-white/5 p-6">
-                      <MediaLibraryModal
-                        onSelect={m => {
-                          const nextImages = [...(content.images || [])];
-                          nextImages[idx] = m.url;
-                          onChange({ images: nextImages });
-                        }}
-                        trigger={<Button size="sm" className="bg-amber-400 text-black font-bold h-10 rounded-xl uppercase tracking-tighter">Choose Image</Button>}
-                      />
-                    </div>
-                  )}
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-3">
+            <div className="text-[10px] font-black uppercase tracking-widest text-white/30">Available Media</div>
+            <div className="max-h-[320px] overflow-auto rounded-2xl border border-white/5 p-2">
+              {loading ? (
+                <div className="p-6 text-center text-white/40">Loading hero media...</div>
+              ) : availableMedia.length === 0 ? (
+                <div className="p-6 text-center text-white/40">No hero media found</div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  {availableMedia.map((item) => {
+                    const isSelected = selectedIds.has(String(item._id));
+                    return (
+                      <button
+                        key={item._id}
+                        type="button"
+                        onClick={() => (!isSelected ? addMedia(item) : removeMedia(String(item._id)))}
+                        className={`group overflow-hidden rounded-2xl border text-left transition-all ${
+                          isSelected ? "border-amber-500/60 ring-2 ring-amber-500/20" : "border-white/5 hover:border-white/20"
+                        }`}
+                      >
+                        <div className="aspect-[4/5] bg-black/40">
+                          {item.type === "video" ? (
+                            <video src={item.url} className="h-full w-full object-cover" muted playsInline />
+                          ) : (
+                            <img src={item.url} alt={item.alt || item.filename || ""} className="h-full w-full object-cover" />
+                          )}
+                        </div>
+                        <div className="p-3">
+                          <p className="truncate text-[11px] font-bold text-white">{item.filename || item.alt || "Media"}</p>
+                          <p className="text-[9px] uppercase tracking-[0.25em] text-white/30">{item.category || "hero"}</p>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
-              </div>
+              )}
             </div>
-          ))}
+          </div>
 
-          {(!content.images || content.images.length === 0) && (
-            <div className="border border-dashed border-white/10 rounded-[2rem] p-8 text-center text-white/30">
-              No hero images yet. Add one to enable the slider.
+          <div className="space-y-3">
+            <div className="text-[10px] font-black uppercase tracking-widest text-white/30">Selected Order</div>
+            <Reorder.Group axis="y" values={selectedMedia} onReorder={reorderSelected} className="space-y-3">
+              {selectedMedia.map((item) => (
+                <Reorder.Item key={String(item._id)} value={item} className="rounded-2xl border border-white/5 bg-black/40 p-3">
+                  <div className="flex items-center gap-3">
+                    <button type="button" className="cursor-grab text-white/20">
+                      <GripVertical size={18} />
+                    </button>
+                    <div className="h-14 w-14 overflow-hidden rounded-xl bg-white/5">
+                      {item.type === "video" ? (
+                        <video src={item.url} className="h-full w-full object-cover" muted playsInline />
+                      ) : (
+                        <img src={item.url} alt={item.alt || ""} className="h-full w-full object-cover" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-bold text-white">{item.filename || item.alt || "Media"}</p>
+                      <p className="text-[9px] uppercase tracking-[0.25em] text-white/30">{item.type || "image"}</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Switch
+                        checked={item.isActive !== false}
+                        onCheckedChange={(checked) => toggleActive(String(item._id), checked)}
+                        className="data-[state=checked]:bg-emerald-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeMedia(String(item._id))}
+                        className="rounded-xl p-2 text-white/25 hover:bg-white/5 hover:text-rose-400"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                </Reorder.Item>
+              ))}
+            </Reorder.Group>
+
+            <div className="rounded-3xl border border-white/5 bg-white/5 p-4">
+              <p className="mb-3 text-[10px] font-black uppercase tracking-[0.25em] text-white/30">Live Preview</p>
+              {previewItem ? (
+                <div className="relative overflow-hidden rounded-[1.5rem] border border-white/10 bg-black/40 aspect-[16/10]">
+                  {previewItem.type === "video" ? (
+                    <video
+                      src={previewItem.url}
+                      className="absolute inset-0 h-full w-full object-cover"
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                    />
+                  ) : (
+                    <img src={previewItem.url} alt={previewItem.alt || ""} className="absolute inset-0 h-full w-full object-cover" />
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                  <div className="absolute bottom-4 left-4 right-4">
+                    <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/60">
+                      {content.eyebrow || "Unlock the Power of Gemstones"}
+                    </p>
+                    <p className="mt-2 text-lg font-bold text-white">{content.title || "Hero Title"}</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-[1.5rem] border border-dashed border-white/10 py-14 text-center text-white/30">
+                  Select hero media to preview
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
       </div>
     </div>
-    <div className="flex items-center justify-between bg-white/5 p-6 rounded-[2rem]">
-      <div className="space-y-1">
-        <label className="text-xs font-bold text-white tracking-tight">Overlay Darkening</label>
-        <p className="text-[9px] text-white/40 font-black uppercase tracking-widest">Global across all images</p>
-      </div>
-      <div className="flex items-center gap-4">
-        <input 
-          type="range" min="0" max="100" 
-          value={content.overlayOpacity || 40} 
-          onChange={e => onChange({ overlayOpacity: parseInt(e.target.value) })}
-          className="accent-amber-500 w-32"
-        />
-        <span className="text-xs font-mono font-bold text-amber-200">{content.overlayOpacity || 40}%</span>
-      </div>
-    </div>
-  </div>
-);
+  );
+};
 
 const NavbarEditor = ({ content, onChange }: { content: any; onChange: (u: any) => void }) => (
   <div className="space-y-8">
@@ -922,8 +1210,374 @@ const CollectionsEditor = ({ content, onChange }: { content: any; onChange: (u: 
   <div className="space-y-6">
     <div className="grid lg:grid-cols-2 gap-8">
       <Field label="Section Title" value={content.title} onChange={v => onChange({ title: v })} />
-      <Field label="Select Products (Slugs/IDs)" value={content.collectionIds?.join(', ') || ''} onChange={e => onChange({ collectionIds: e.split(',').map(s => s.trim()).filter(Boolean) })} placeholder="e.g. emerald-ring, ruby-necklace" />
+      <Field label="Section Subtitle" value={content.subtitle || ""} onChange={v => onChange({ subtitle: v })} />
     </div>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <Label className="text-[10px] font-black uppercase tracking-widest text-white/30">Collection Cards</Label>
+        <Button
+          onClick={() =>
+            onChange({
+              items: [
+                ...(content.items || []),
+                { id: Math.random().toString(), name: "New Collection", image: "", link: "#" },
+              ],
+            })
+          }
+          variant="outline"
+          size="sm"
+          className="h-8 rounded-xl border-white/10"
+        >
+          + Add Item
+        </Button>
+      </div>
+      <div className="space-y-4">
+        {(content.items || []).map((item: any, idx: number) => (
+          <div key={item.id || idx} className="bg-black/40 p-6 rounded-[2rem] border border-white/5 space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase tracking-widest text-blue-400">Item #{idx + 1}</span>
+              <button
+                onClick={() =>
+                  onChange({
+                    items: (content.items || []).filter((_: any, i: number) => i !== idx),
+                  })
+                }
+                className="text-white/20 hover:text-rose-400"
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
+            <div className="grid md:grid-cols-2 gap-4">
+              <Field
+                label="Name"
+                value={item.name}
+                onChange={(v) => {
+                  const next = [...(content.items || [])];
+                  next[idx] = { ...item, name: v };
+                  onChange({ items: next });
+                }}
+              />
+              <Field
+                label="Link"
+                value={item.link || ""}
+                onChange={(v) => {
+                  const next = [...(content.items || [])];
+                  next[idx] = { ...item, link: v };
+                  onChange({ items: next });
+                }}
+              />
+            </div>
+            <Field
+              label="Image URL"
+              value={item.image}
+              onChange={(v) => {
+                const next = [...(content.items || [])];
+                next[idx] = { ...item, image: v };
+                onChange({ items: next });
+              }}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+);
+
+const WhyEditor = ({ content, onChange }: { content: any; onChange: (u: any) => void }) => (
+  <div className="space-y-6">
+    <Field label="Section Title" value={content.title} onChange={(v) => onChange({ title: v })} />
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <Label className="text-[10px] font-black uppercase tracking-widest text-white/30">Why Points</Label>
+        <Button
+          onClick={() =>
+            onChange({
+              points: [
+                ...(content.points || []),
+                { id: Math.random().toString(), title: "New Point", description: "" },
+              ],
+            })
+          }
+          variant="outline"
+          size="sm"
+          className="h-8 rounded-xl border-white/10"
+        >
+          + Add Point
+        </Button>
+      </div>
+      {(content.points || []).map((item: any, idx: number) => (
+        <div key={item.id || idx} className="bg-black/40 p-6 rounded-[2rem] border border-white/5 space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Point #{idx + 1}</span>
+            <button
+              onClick={() =>
+                onChange({
+                  points: (content.points || []).filter((_: any, i: number) => i !== idx),
+                })
+              }
+              className="text-white/20 hover:text-rose-400"
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
+          <Field
+            label="Title"
+            value={item.title}
+            onChange={(v) => {
+              const next = [...(content.points || [])];
+              next[idx] = { ...item, title: v };
+              onChange({ points: next });
+            }}
+          />
+          <Field
+            label="Description"
+            value={item.description}
+            onChange={(v) => {
+              const next = [...(content.points || [])];
+              next[idx] = { ...item, description: v };
+              onChange({ points: next });
+            }}
+            textarea
+          />
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+const ProductsEditor = ({ content, onChange }: { content: any; onChange: (u: any) => void }) => (
+  <div className="space-y-6">
+    <Field label="Section Title" value={content.title} onChange={(v) => onChange({ title: v })} />
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <Label className="text-[10px] font-black uppercase tracking-widest text-white/30">Products</Label>
+        <Button
+          onClick={() =>
+            onChange({
+              items: [
+                ...(content.items || []),
+                { id: Math.random().toString(), name: "New Product", price: "", image: "", tag: "" },
+              ],
+            })
+          }
+          variant="outline"
+          size="sm"
+          className="h-8 rounded-xl border-white/10"
+        >
+          + Add Product
+        </Button>
+      </div>
+      {(content.items || []).map((item: any, idx: number) => (
+        <div key={item.id || idx} className="bg-black/40 p-6 rounded-[2rem] border border-white/5 space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-black uppercase tracking-widest text-indigo-400">Product #{idx + 1}</span>
+            <button
+              onClick={() =>
+                onChange({
+                  items: (content.items || []).filter((_: any, i: number) => i !== idx),
+                })
+              }
+              className="text-white/20 hover:text-rose-400"
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
+          <div className="grid md:grid-cols-2 gap-4">
+            <Field
+              label="Name"
+              value={item.name}
+              onChange={(v) => {
+                const next = [...(content.items || [])];
+                next[idx] = { ...item, name: v };
+                onChange({ items: next });
+              }}
+            />
+            <Field
+              label="Price"
+              value={item.price}
+              onChange={(v) => {
+                const next = [...(content.items || [])];
+                next[idx] = { ...item, price: v };
+                onChange({ items: next });
+              }}
+            />
+          </div>
+          <div className="grid md:grid-cols-2 gap-4">
+            <Field
+              label="Tag"
+              value={item.tag || ""}
+              onChange={(v) => {
+                const next = [...(content.items || [])];
+                next[idx] = { ...item, tag: v };
+                onChange({ items: next });
+              }}
+            />
+            <Field
+              label="Image URL"
+              value={item.image}
+              onChange={(v) => {
+                const next = [...(content.items || [])];
+                next[idx] = { ...item, image: v };
+                onChange({ items: next });
+              }}
+            />
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+const FeaturesEditor = ({ content, onChange }: { content: any; onChange: (u: any) => void }) => (
+  <div className="space-y-6">
+    <Field label="Section Title" value={content.title} onChange={(v) => onChange({ title: v })} />
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <Label className="text-[10px] font-black uppercase tracking-widest text-white/30">Feature Items</Label>
+        <Button
+          onClick={() =>
+            onChange({
+              items: [
+                ...(content.items || []),
+                { id: Math.random().toString(), title: "New Feature", description: "", icon: "Sparkles" },
+              ],
+            })
+          }
+          variant="outline"
+          size="sm"
+          className="h-8 rounded-xl border-white/10"
+        >
+          + Add Feature
+        </Button>
+      </div>
+      {(content.items || []).map((item: any, idx: number) => (
+        <div key={item.id || idx} className="bg-black/40 p-6 rounded-[2rem] border border-white/5 space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-black uppercase tracking-widest text-cyan-400">Feature #{idx + 1}</span>
+            <button
+              onClick={() =>
+                onChange({
+                  items: (content.items || []).filter((_: any, i: number) => i !== idx),
+                })
+              }
+              className="text-white/20 hover:text-rose-400"
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
+          <div className="grid md:grid-cols-2 gap-4">
+            <Field
+              label="Title"
+              value={item.title}
+              onChange={(v) => {
+                const next = [...(content.items || [])];
+                next[idx] = { ...item, title: v };
+                onChange({ items: next });
+              }}
+            />
+            <Field
+              label="Icon Name"
+              value={item.icon || ""}
+              onChange={(v) => {
+                const next = [...(content.items || [])];
+                next[idx] = { ...item, icon: v };
+                onChange({ items: next });
+              }}
+            />
+          </div>
+          <Field
+            label="Description"
+            value={item.description}
+            onChange={(v) => {
+              const next = [...(content.items || [])];
+              next[idx] = { ...item, description: v };
+              onChange({ items: next });
+            }}
+            textarea
+          />
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+const FooterEditor = ({ content, onChange }: { content: any; onChange: (u: any) => void }) => (
+  <div className="space-y-8">
+    <div className="grid lg:grid-cols-2 gap-8">
+      <Field label="Brand Name" value={content.brandName || ""} onChange={(v) => onChange({ brandName: v })} />
+      <Field label="Brand Text" value={content.brandText} onChange={(v) => onChange({ brandText: v })} textarea />
+    </div>
+
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <Label className="text-[10px] font-black uppercase tracking-widest text-white/30">Footer Links</Label>
+        <Button
+          onClick={() =>
+            onChange({
+              links: [...(content.links || []), { id: Math.random().toString(), label: "New Link", href: "/" }],
+            })
+          }
+          variant="outline"
+          size="sm"
+          className="h-8 rounded-xl border-white/10"
+        >
+          + Add Link
+        </Button>
+      </div>
+      {(content.links || []).map((link: any, idx: number) => (
+        <div key={link.id || idx} className="grid md:grid-cols-[1fr_1fr_auto] gap-4 bg-black/40 p-5 rounded-[2rem] border border-white/5">
+          <Field
+            label="Label"
+            value={link.label}
+            onChange={(v) => {
+              const next = [...(content.links || [])];
+              next[idx] = { ...link, label: v };
+              onChange({ links: next });
+            }}
+          />
+          <Field
+            label="Href"
+            value={link.href}
+            onChange={(v) => {
+              const next = [...(content.links || [])];
+              next[idx] = { ...link, href: v };
+              onChange({ links: next });
+            }}
+          />
+          <div className="flex items-end">
+            <button
+              onClick={() =>
+                onChange({
+                  links: (content.links || []).filter((_: any, i: number) => i !== idx),
+                })
+              }
+              className="h-14 w-14 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-center text-white/20 hover:text-rose-400"
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+
+    <div className="grid lg:grid-cols-2 gap-8">
+      <Field
+        label="Phone"
+        value={content.contact?.phone || ""}
+        onChange={(v) => onChange({ contact: { ...(content.contact || {}), phone: v } })}
+      />
+      <Field
+        label="Email"
+        value={content.contact?.email || ""}
+        onChange={(v) => onChange({ contact: { ...(content.contact || {}), email: v } })}
+      />
+    </div>
+    <Field
+      label="Address"
+      value={content.contact?.address || ""}
+      onChange={(v) => onChange({ contact: { ...(content.contact || {}), address: v } })}
+      textarea
+    />
   </div>
 );
 

@@ -42,6 +42,11 @@ export default function RootLayout({
       className={cn("font-sans", inter.variable, heading.variable, playfair.variable, poppins.variable)}
     >
       <body>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: 'localStorage.setItem("theme", "light");document.documentElement.setAttribute("data-theme","light");',
+          }}
+        />
         <ChunkErrorRecovery />
         <StoreProvider>
           <Providers>

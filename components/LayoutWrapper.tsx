@@ -1,6 +1,6 @@
 "use client";
 import { usePathname } from "next/navigation";
-import SiteChrome from "./SiteChrome";
+import GemSiteChrome from "./GemSiteChrome";
 
 export default function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -19,5 +19,5 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
   }
 
   // Otherwise, wrap children in the standard gemsratna header and footer
-  return <SiteChrome>{children}</SiteChrome>;
+  return <GemSiteChrome>{children}</GemSiteChrome>;
 }

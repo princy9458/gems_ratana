@@ -16,7 +16,7 @@ const withDynamicHero = (page: any) => {
         section?.type === "hero"
           ? {
               ...section,
-              content: normalizeHero(section.content || hero),
+              content: normalizeHero(section.content || page.hero || hero),
             }
           : section,
       )
@@ -58,6 +58,7 @@ export default async function Page() {
   const hasActiveSections = Array.isArray(page?.sections) && page.sections.some((s: any) => s.enabled);
   const hero = normalizeHero(page?.hero);
 
+  // Keeping the live homepage experience on "/" until the CMS-rendered version is intentionally deployed.
   // if (page && isPagePublished(page) && hasActiveSections) {
   //   return <PageContentRenderer page={withDynamicHero(page)} />;
   // }
